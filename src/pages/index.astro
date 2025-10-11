@@ -8,9 +8,305 @@
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<title>qnch</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<canvas id="particleCanvas"></canvas>
+		<header>
+			<a href="https://fansociety.xyz" class="header-link" target="_blank" rel="noopener noreferrer">
+				FanSociety is... →
+			</a>
+		</header>
+		<main>
+			<div class="description">
+				<h3>the qnch parachain is part of a self-hosted music streaming initiative that hosts the <a href="https://fansociety.xyz" target="_blank" rel="noopener noreferrer" class="inline-link">fansociety protocol</a>, enabling musicians to individually control access to their music and connect with fans.</h3>
+			</div>
+		</main>
+		<footer>
+			<a href="https://polkadot.com" target="_blank" rel="noopener noreferrer" class="powered-by">
+				<span>Powered by</span>
+				<img src="/polkadot-logo.svg" alt="Polkadot" class="polkadot-logo" />
+			</a>
+		</footer>
 	</body>
 </html>
+
+<style>
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	body {
+		background-color: #000;
+		color: #fff;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	#particleCanvas {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 0;
+	}
+
+	header {
+		position: fixed;
+		top: 2rem;
+		right: 2rem;
+		z-index: 1;
+	}
+
+	.header-link {
+		color: #fff;
+		text-decoration: none;
+		opacity: 0.6;
+		transition: opacity 0.3s ease;
+		font-family: sans-serif;
+		font-size: 1.1rem;
+		font-weight: 400;
+	}
+
+	.header-link:hover {
+		opacity: 1;
+	}
+
+	main {
+		text-align: center;
+		position: relative;
+		z-index: 1;
+	}
+
+	h1 {
+		font-family: 'Anton', sans-serif;
+		font-size: clamp(4rem, 15vw, 12rem);
+		font-weight: 400;
+		letter-spacing: -0.05em;
+		text-transform: uppercase;
+		margin-bottom: 1rem;
+	}
+
+	.tagline {
+		font-size: clamp(1rem, 2.5vw, 1.5rem);
+		opacity: 0.7;
+		margin-bottom: 2rem;
+		font-weight: 300;
+	}
+
+	.description {
+		max-width: 600px;
+		margin: 2rem auto;
+		line-height: 1.6;
+		opacity: 0.85;
+	}
+
+	.description h3 {
+		font-family: 'Anton', sans-serif;
+		font-size: clamp(1.2rem, 3vw, 2rem);
+		font-weight: 400;
+		letter-spacing: -0.02em;
+		margin-bottom: 1rem;
+	}
+
+	.inline-link {
+		color: #fff;
+		text-decoration: underline;
+		text-decoration-color: rgba(255, 255, 255, 0.4);
+		text-underline-offset: 0.2em;
+		transition: text-decoration-color 0.3s ease;
+	}
+
+	.inline-link:hover {
+		text-decoration-color: rgba(255, 255, 255, 1);
+	}
+
+	footer {
+		position: fixed;
+		bottom: 2rem;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 1;
+	}
+
+	.powered-by {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #fff;
+		text-decoration: none;
+		opacity: 0.6;
+		transition: opacity 0.3s ease;
+		font-family: sans-serif;
+		font-size: 0.9rem;
+		font-weight: 400;
+	}
+
+	.powered-by:hover {
+		opacity: 1;
+	}
+
+	.polkadot-logo {
+		height: 20px;
+		width: auto;
+	}
+
+	@media (max-width: 768px) {
+		header {
+			top: 1rem;
+			right: 1rem;
+		}
+
+		.header-link {
+			font-size: 1rem;
+		}
+
+		footer {
+			bottom: 1rem;
+		}
+
+		.powered-by {
+			font-family: sans-serif;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+
+		.polkadot-logo {
+			height: 16px;
+		}
+	}
+</style>
+
+<script>
+	const canvas = document.getElementById('particleCanvas') as HTMLCanvasElement;
+	const ctx = canvas.getContext('2d')!;
+
+	let width = window.innerWidth;
+	let height = window.innerHeight;
+
+	canvas.width = width;
+	canvas.height = height;
+
+	interface Particle {
+		x: number;
+		y: number;
+		baseX: number;
+		baseY: number;
+		vx: number;
+		vy: number;
+		size: number;
+	}
+
+	const particles: Particle[] = [];
+	const mouse = { x: -1000, y: -1000 };
+	const mouseRadius = 80;
+	const returnSpeed = 0.1;
+	const repelForce = 2;
+
+	// Create particles from text
+	function createParticles() {
+		particles.length = 0;
+
+		// Create temporary canvas for text
+		const tempCanvas = document.createElement('canvas');
+		const tempCtx = tempCanvas.getContext('2d')!;
+
+		// Calculate font size based on viewport
+		const fontSize = Math.min(width * 0.35, 400);
+		tempCanvas.width = width;
+		tempCanvas.height = height;
+
+		tempCtx.fillStyle = '#fff';
+		tempCtx.font = `400 ${fontSize}px Anton, sans-serif`;
+		tempCtx.textAlign = 'center';
+		tempCtx.textBaseline = 'middle';
+		tempCtx.fillText('QNCH', width / 2, height / 2);
+
+		const imageData = tempCtx.getImageData(0, 0, width, height);
+		const gap = 3; // Distance between particles
+
+		for (let y = 0; y < height; y += gap) {
+			for (let x = 0; x < width; x += gap) {
+				const index = (y * width + x) * 4;
+				const alpha = imageData.data[index + 3];
+
+				if (alpha > 128) {
+					particles.push({
+						x,
+						y,
+						baseX: x,
+						baseY: y,
+						vx: 0,
+						vy: 0,
+						size: Math.random() * 2 + 1
+					});
+				}
+			}
+		}
+	}
+
+	function animate() {
+		ctx.clearRect(0, 0, width, height);
+
+		particles.forEach(particle => {
+			const dx = mouse.x - particle.x;
+			const dy = mouse.y - particle.y;
+			const distance = Math.sqrt(dx * dx + dy * dy);
+
+			// Repel particles from mouse
+			if (distance < mouseRadius) {
+				const angle = Math.atan2(dy, dx);
+				const force = (mouseRadius - distance) / mouseRadius;
+				particle.vx -= Math.cos(angle) * force * repelForce;
+				particle.vy -= Math.sin(angle) * force * repelForce;
+			}
+
+			// Return to base position
+			const returnDx = particle.baseX - particle.x;
+			const returnDy = particle.baseY - particle.y;
+			particle.vx += returnDx * returnSpeed;
+			particle.vy += returnDy * returnSpeed;
+
+			// Apply velocity with damping
+			particle.vx *= 0.85;
+			particle.vy *= 0.85;
+			particle.x += particle.vx;
+			particle.y += particle.vy;
+
+			// Draw particle
+			ctx.fillStyle = '#888';
+			ctx.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
+		});
+
+		requestAnimationFrame(animate);
+	}
+
+	// Mouse move handler
+	window.addEventListener('mousemove', (e) => {
+		mouse.x = e.clientX;
+		mouse.y = e.clientY;
+	});
+
+	// Resize handler
+	window.addEventListener('resize', () => {
+		width = window.innerWidth;
+		height = window.innerHeight;
+		canvas.width = width;
+		canvas.height = height;
+		createParticles();
+	});
+
+	// Initialize
+	createParticles();
+	animate();
+</script>
