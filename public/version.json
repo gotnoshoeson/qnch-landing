@@ -1,0 +1,7 @@
+{
+    "version": "0.1.0-beta.51",
+    "docker_image": "ghcr.io/gotnoshoeson/station:0.1.0-beta.51",
+    "release_date": "2025-01-01T00:00:00Z",
+    "changelog_url": "https://github.com/gotnoshoeson/station/releases",
+    "min_version": "0.1.0-beta.50"
+  }
