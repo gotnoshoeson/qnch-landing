@@ -16,29 +16,13 @@
 	<body>
 		<canvas id="particleCanvas"></canvas>
 		<div class="banner">
-			<p><a href="https://beta.qnch.network" target="_blank" rel="noopener noreferrer" class="banner-link">Station</a> is now in beta, <button class="banner-link" id="openModal">host your own music</button></p>
+			<p><a href="https://beta.qnch.network" target="_blank" rel="noopener noreferrer" class="banner-link">Station</a> is now in beta, <a href="https://docs.qnch.network" target="_blank" rel="noopener noreferrer" class="banner-link">host your own music</a></p>
 		</div>
 		<main>
 			<div class="description">
 				<h3>qnch is a network for musicians and technologists to explore novel ideas in digital music distribution, payment archetypes, and knitting new social fabrics</h3>
 			</div>
 		</main>
-		<dialog id="installDialog">
-			<div class="dialog-content">
-				<section class="install-section">
-					<div class="install-command-wrapper">
-						<code class="install-command">curl -fsSL https://qnch.network/install.sh | sudo bash</code>
-						<button
-							class="copy-button"
-							aria-label="Copy install command to clipboard"
-							data-copy-text="curl -fsSL https://qnch.network/install.sh | bash"
-						>
-							Copy
-						</button>
-					</div>
-				</section>
-			</div>
-		</dialog>
 		<footer>
 			<a href="https://polkadot.com" target="_blank" rel="noopener noreferrer" class="powered-by">
 				<span>Powered by</span>
@@ -210,83 +194,7 @@
 		}
 	}
 
-	.install-section {
-		max-width: 700px;
-		margin: 3rem auto 4rem;
-		position: relative;
-		z-index: 1;
-		text-align: center;
-	}
-
-	.install-heading {
-		font-family: 'Anton', sans-serif;
-		font-size: clamp(1.5rem, 4vw, 2.5rem);
-		margin-bottom: 1.5rem;
-		opacity: 0.85;
-	}
-
-	.install-command-wrapper {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		background: #111;
-		border: 1px solid rgba(255, 255, 255, 0.2);
-		border-radius: 8px;
-		padding: 1rem 1.25rem;
-	}
-
-	.install-command {
-		flex: 1;
-		font-family: 'Courier New', monospace;
-		font-size: clamp(0.85rem, 2vw, 1rem);
-		color: #fff;
-		opacity: 0.85;
-		overflow-x: auto;
-		white-space: nowrap;
-	}
-
-	.copy-button {
-		background: rgba(255, 255, 255, 0.1);
-		border: 1px solid rgba(255, 255, 255, 0.3);
-		color: #fff;
-		padding: 0.5rem 1rem;
-		border-radius: 4px;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		font-family: sans-serif;
-		font-size: 0.9rem;
-		white-space: nowrap;
-		min-width: 80px;
-	}
-
-	.copy-button:hover {
-		background: rgba(255, 255, 255, 0.15);
-		border-color: rgba(255, 255, 255, 0.5);
-	}
-
-	.copy-button:focus {
-		outline: 2px solid rgba(255, 255, 255, 0.5);
-		outline-offset: 2px;
-	}
-
-	.copy-button.copied {
-		background: rgba(74, 222, 128, 0.2);
-		border-color: #4ade80;
-		color: #4ade80;
-	}
-
 	@media (max-width: 768px) {
-		.install-command-wrapper {
-			flex-direction: column;
-			align-items: stretch;
-			gap: 0.75rem;
-		}
-
-		.copy-button {
-			width: 100%;
-			padding: 0.75rem;
-		}
-
 		.banner {
 			padding: 0.75rem 1rem;
 		}
@@ -295,67 +203,6 @@
 		.banner-link {
 			font-size: 0.85rem;
 		}
-	}
-
-	/* Dialog styles */
-	dialog {
-		position: fixed;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		margin: 0;
-		border: none;
-		border-radius: 12px;
-		background: #000;
-		padding: 0;
-		max-width: 90vw;
-		width: 750px;
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-	}
-
-	dialog::backdrop {
-		background: rgba(0, 0, 0, 0.85);
-	}
-
-	.dialog-content {
-		position: relative;
-		padding: 1.5rem;
-	}
-
-	/* Animation */
-	dialog[open] {
-		animation: fadeIn 0.3s ease;
-	}
-
-	dialog.closing {
-		animation: fadeOut 0.3s ease;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translate(-50%, -50%) scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: translate(-50%, -50%) scale(1);
-		}
-	}
-
-	@keyframes fadeOut {
-		from {
-			opacity: 1;
-			transform: translate(-50%, -50%) scale(1);
-		}
-		to {
-			opacity: 0;
-			transform: translate(-50%, -50%) scale(0.95);
-		}
-	}
-
-	/* Adjust install section for dialog */
-	dialog .install-section {
-		margin: 0;
 	}
 </style>
 
@@ -482,108 +329,4 @@
 	createParticles();
 	animate();
 
-	// Dialog functionality
-	const dialog = document.getElementById('installDialog') as HTMLDialogElement;
-	const openModalBtn = document.getElementById('openModal') as HTMLButtonElement;
-
-	// Helper function to close dialog with animation
-	function closeDialog() {
-		if (!dialog) return;
-
-		dialog.classList.add('closing');
-
-		// Wait for animation to complete, then close
-		setTimeout(() => {
-			dialog.close();
-			dialog.classList.remove('closing');
-		}, 300); // Match animation duration
-	}
-
-	// Open dialog
-	if (openModalBtn && dialog) {
-		openModalBtn.addEventListener('click', () => {
-			dialog.showModal();
-		});
-	}
-
-	// Close dialog when clicking backdrop
-	if (dialog) {
-		dialog.addEventListener('click', (e) => {
-			const rect = dialog.getBoundingClientRect();
-			const isInDialog = (
-				rect.top <= e.clientY &&
-				e.clientY <= rect.top + rect.height &&
-				rect.left <= e.clientX &&
-				e.clientX <= rect.left + rect.width
-			);
-			if (!isInDialog) {
-				closeDialog();
-			}
-		});
-	}
-
-	// Copy to clipboard functionality
-	const copyButton = document.querySelector('.copy-button') as HTMLButtonElement;
-
-	if (copyButton) {
-		copyButton.addEventListener('click', async () => {
-			const textToCopy = copyButton.getAttribute('data-copy-text');
-
-			if (!textToCopy) return;
-
-			try {
-				// Modern Clipboard API (works in all modern browsers)
-				if (navigator.clipboard && navigator.clipboard.writeText) {
-					await navigator.clipboard.writeText(textToCopy);
-					showCopySuccess();
-				} else {
-					// Fallback for older browsers
-					fallbackCopy(textToCopy);
-				}
-			} catch (err) {
-				console.error('Failed to copy:', err);
-			}
-		});
-	}
-
-	function showCopySuccess() {
-		const button = copyButton;
-		const originalText = button.textContent;
-
-		// Update button state
-		button.textContent = 'Copied!';
-		button.classList.add('copied');
-		button.disabled = true;
-
-		// Auto-close dialog after 2 seconds
-		setTimeout(() => {
-			button.textContent = originalText;
-			button.classList.remove('copied');
-			button.disabled = false;
-
-			// Close the dialog with animation
-			closeDialog();
-		}, 2000);
-	}
-
-	function fallbackCopy(text: string) {
-		// Fallback for browsers that don't support Clipboard API
-		const textArea = document.createElement('textarea');
-		textArea.value = text;
-		textArea.style.position = 'fixed';
-		textArea.style.left = '-999999px';
-		textArea.style.top = '-999999px';
-		document.body.appendChild(textArea);
-		textArea.focus();
-		textArea.select();
-
-		try {
-			document.execCommand('copy');
-			showCopySuccess();
-		} catch (err) {
-			console.error('Fallback copy failed:', err);
-		}
-
-		document.body.removeChild(textArea);
-	}
 </script>
