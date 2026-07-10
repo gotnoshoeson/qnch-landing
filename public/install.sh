@@ -12,6 +12,66 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# ----------------------------------------------------------------------------
+# Environment target (deploy-time choice): which P2P directory this node
+# joins. Artists run the bare script and get production (mainnet directory,
+# "/station"); testnet deploys pass --network testnet ("/station/testnet");
+# local dev uses --network local ("/station/local"). The choice is baked into
+# the generated .env here, so the operator never hand-edits it.
+#
+# STATION_CHAIN is a separate, optional axis: which EVM chain the artist's
+# contracts live on (polkadot-hub | kusama-hub | paseo | local | local-dummy).
+# On a real node this is picked from the artist dashboard after first login —
+# leave --chain unset. Only pass --chain for automation/scripted setups (CI,
+# local multi-node testing) that need to skip the picker.
+# ----------------------------------------------------------------------------
+NETWORK="production"
+CHAIN=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --network=*)
+            NETWORK="${1#*=}"
+            shift
+            ;;
+        --network)
+            shift
+            NETWORK="${1:-}"
+            [ $# -eq 0 ] || shift
+            ;;
+        --chain=*)
+            CHAIN="${1#*=}"
+            shift
+            ;;
+        --chain)
+            shift
+            CHAIN="${1:-}"
+            [ $# -eq 0 ] || shift
+            ;;
+        -h|--help)
+            echo "Usage: $(basename "$0") [--network production|testnet|local] [--chain polkadot-hub|kusama-hub|paseo|local|local-dummy]"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+case "$NETWORK" in
+    production|testnet|local) ;;
+    *)
+        echo "Invalid --network '$NETWORK' (expected: production, testnet, local)" >&2
+        exit 1
+        ;;
+esac
+case "$CHAIN" in
+    ""|polkadot-hub|kusama-hub|paseo|local|local-dummy) ;;
+    *)
+        echo "Invalid --chain '$CHAIN' (expected: polkadot-hub, kusama-hub, paseo, local, local-dummy)" >&2
+        exit 1
+        ;;
+esac
+
 # Print the QNCH ASCII banner
 print_banner() {
     local banner
@@ -389,7 +449,7 @@ services:
 
     environment:
       - ACME_EMAIL=${ACME_EMAIL}
-      - ACME_PRODUCTION=${ACME_PRODUCTION:-false}
+      - ACME_PRODUCTION=${ACME_PRODUCTION:-true}
 
     networks:
       - station-network
@@ -429,14 +489,17 @@ services:
     volumes:
       - ./data:/data
       - ./config:/config
-      - ./music:/music:ro
 
     environment:
       - STATION_LOG_LEVEL=${STATION_LOG_LEVEL:-info}
       - STATION_DATA_DIR=/data
       - STATION_CONFIG=/config/station.yml
-      - STATION_MUSIC_DIR=/music
-      - STATION_BOOTSTRAP_PEERS=${STATION_BOOTSTRAP_PEERS:-/dns4/theramble.duckdns.org/tcp/4001/p2p/12D3KooWACcJjwyRZfz9hSXDTANF4uQXZaNaeuDZmCKUReK8dw8F}
+      # Environment: which P2P directory this node joins (production | testnet | local).
+      - STATION_NETWORK=${STATION_NETWORK:-production}
+      # Chain override (optional): polkadot-hub | kusama-hub | paseo | local | local-dummy.
+      # Leave unset to pick the chain from the artist dashboard instead.
+      - STATION_CHAIN=${STATION_CHAIN:-}
+      - STATION_BOOTSTRAP_PEERS=${STATION_BOOTSTRAP_PEERS}
       - STATION_ANNOUNCE_ADDRS=${STATION_ANNOUNCE_ADDRS}
       - TZ=${TZ:-UTC}
 
@@ -562,7 +625,7 @@ PROJECT_ROOT="$(pwd)"
 
 # Station version - fetched dynamically from qnch.network
 VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-beta.52"
+FALLBACK_VERSION="0.1.0-rc.1"
 
 fetch_latest_version() {
     local version=""
@@ -930,50 +993,14 @@ echo ""
 # Step 4: ACME Environment
 # ============================================================================
 
-print_step "Certificate Generation Mode"
-echo ""
-if [ "$GUM_AVAILABLE" = true ]; then
-    cat << 'CERT_INFO' | gum format
-Let's Encrypt has two modes:
-
-**STAGING** _(recommended for first-time setup)_
-* No rate limits (test freely)
-* Self-signed certificates (browser warnings)
-* Perfect for testing configuration
-
-**PRODUCTION** _(for live use)_
-* Trusted certificates (no warnings)
-* Rate limited: 5 duplicate certs per week
-* Use after testing in staging mode
-
-> Recommendation: Start with STAGING, switch to PRODUCTION once working.
-CERT_INFO
-else
-    echo "Let's Encrypt has two modes:"
-    echo ""
-    echo "  STAGING (recommended for first-time setup):"
-    echo "    • No rate limits (test freely)"
-    echo "    • Self-signed certificates (browser warnings)"
-    echo "    • Perfect for testing configuration"
-    echo ""
-    echo "  PRODUCTION (for live use):"
-    echo "    • Trusted certificates (no warnings)"
-    echo "    • Rate limited: 5 duplicate certs per week"
-    echo "    • Use after testing in staging mode"
-    echo ""
-    echo "Recommendation: Start with STAGING, switch to PRODUCTION once working."
-fi
+print_step "Certificate Generation"
 echo ""
 
-if gum_confirm "Use STAGING mode? (recommended for first-time setup)" "yes"; then
-    ACME_PRODUCTION="false"
-    print_info "Using STAGING mode (certificate warnings are normal)"
-else
-    ACME_PRODUCTION="true"
-    print_warning "Using PRODUCTION mode"
-    print_info "Let's Encrypt limits you to 5 duplicate certificates per week."
-    print_info "If something goes wrong, you may need to wait before retrying."
-fi
+# Always use Let's Encrypt production certificates. Staging certs are signed by
+# a CA browsers reject, so the listener app can't reach a staging node.
+ACME_PRODUCTION="true"
+print_info "Using Let's Encrypt production certificates (trusted, no browser warnings)."
+print_info "Let's Encrypt limits you to 5 duplicate certificates per week."
 
 echo ""
 
@@ -1022,7 +1049,6 @@ cd "$PROJECT_ROOT"
 
 mkdir -p data
 mkdir -p config
-mkdir -p music
 mkdir -p traefik
 mkdir -p logs
 
@@ -1045,6 +1071,21 @@ generate_docker_compose
 
 print_step "Generating configuration files..."
 
+print_info "Target environment: $NETWORK"
+if [ -n "$CHAIN" ]; then
+    print_info "Chain override: $CHAIN"
+else
+    print_info "Chain: not set — pick your chain from the artist dashboard after first login"
+fi
+
+# Chain override line: written live only when --chain was passed, otherwise
+# left commented out (discoverable, but the dashboard picker stays in charge).
+if [ -n "$CHAIN" ]; then
+    CHAIN_LINE="STATION_CHAIN=$CHAIN"
+else
+    CHAIN_LINE="# STATION_CHAIN="
+fi
+
 # Generate .env file
 cat > .env << EOF
 # Station Domain Configuration
@@ -1053,18 +1094,33 @@ STATION_DOMAIN=$STATION_DOMAIN
 # Let's Encrypt Email
 ACME_EMAIL=$ACME_EMAIL
 
-# Certificate Mode (true=production, false=staging)
+# Certificate Mode (always production; Let's Encrypt trusted certs)
 ACME_PRODUCTION=$ACME_PRODUCTION
 
 # Station Configuration
 STATION_LOG_LEVEL=info
 STATION_DATA_DIR=/data
 STATION_CONFIG=/config/station.yml
-STATION_MUSIC_DIR=/music
 
-# Bootstrap peers (comma-separated multiaddrs)
-# Default: Official Station bootstrap node
-STATION_BOOTSTRAP_PEERS=/dns4/theramble.duckdns.org/tcp/4001/p2p/12D3KooWACcJjwyRZfz9hSXDTANF4uQXZaNaeuDZmCKUReK8dw8F
+# Environment: production (mainnet directory) | testnet | local
+# Set by setup-station.sh --network; selects the P2P directory this node
+# joins (/station, /station/testnet, or /station/local). Does NOT select
+# the chain — see STATION_CHAIN below.
+STATION_NETWORK=$NETWORK
+
+# Chain override (optional): polkadot-hub | kusama-hub | paseo | local | local-dummy
+# Set by setup-station.sh --chain. Leave unset (commented out) to pick your
+# chain from the artist dashboard on first login — that's the normal path.
+# Only automation/scripted setups (CI, local multi-node testing) should set
+# this directly. A chain that doesn't belong to STATION_NETWORK's environment
+# is silently ignored by the node (falls back to chain-less).
+$CHAIN_LINE
+
+# Bootstrap peers (comma-separated multiaddrs) — OVERRIDE ONLY.
+# Leave unset to use the network's built-in seeds (from the committed profile).
+# Set this to point at a custom seed, or to "none" to disable bootstrap
+# (the first bootnode of a network runs with no seeds — it IS the seed).
+# STATION_BOOTSTRAP_PEERS=
 
 # Public announce address for DHT (derived from domain)
 # This tells other peers how to reach this node through Traefik
@@ -1086,12 +1142,8 @@ fi
 
 print_success "Created .env"
 
-# Generate traefik.yml with dynamic CA server based on mode
-if [ "$ACME_PRODUCTION" = "true" ]; then
-    CA_SERVER="https://acme-v02.api.letsencrypt.org/directory"
-else
-    CA_SERVER="https://acme-staging-v02.api.letsencrypt.org/directory"
-fi
+# Generate traefik.yml with Let's Encrypt production CA server
+CA_SERVER="https://acme-v02.api.letsencrypt.org/directory"
 
 cat > traefik/traefik.yml << EOF
 # Traefik Static Configuration
@@ -1194,12 +1246,12 @@ if [ "$GUM_AVAILABLE" = true ]; then
     gum style --border rounded --border-foreground 99 --padding "1 2" \
         "Domain:           $STATION_DOMAIN" \
         "Email:            $ACME_EMAIL" \
-        "Certificate:      $([ "$ACME_PRODUCTION" = "true" ] && echo "Production" || echo "Staging")" \
+        "Certificate:      Production" \
         "Domain Type:      $DOMAIN_TYPE"
 else
     echo "  Domain:              $STATION_DOMAIN"
     echo "  Email:               $ACME_EMAIL"
-    echo "  Certificate Mode:    $([ "$ACME_PRODUCTION" = "true" ] && echo "Production" || echo "Staging")"
+    echo "  Certificate Mode:    Production"
     echo "  Domain Type:         $DOMAIN_TYPE"
 fi
 echo ""
@@ -1366,17 +1418,6 @@ else
 fi
 echo ""
 
-if [ "$ACME_PRODUCTION" = "false" ]; then
-    if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 214 --italic \
-            "Note: Using staging certificates (browser warnings expected)." \
-            "Run 'bash switch-to-production.sh' later for trusted certificates."
-    else
-        echo "Note: Using staging certificates (browser warnings expected)."
-        echo "Run 'bash switch-to-production.sh' later to get trusted certificates."
-    fi
-    echo ""
-fi
 
 if [ "$GUM_AVAILABLE" = true ]; then
     cat << COMMANDS | gum format
