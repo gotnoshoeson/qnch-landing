@@ -172,13 +172,21 @@ setup_gum() {
         OS=$ID
     fi
 
+    # NOTE: every branch below ends with `|| true`. gum is optional (there's
+    # a full non-gum prompt fallback after this case statement), but under
+    # `set -e`, the LAST command of an && / || chain is NOT exempt from -e
+    # even though earlier commands in the same chain are — so e.g. a bare
+    # `apt-get update -qq && apt-get install -y -qq gum` would abort the
+    # ENTIRE installer if just the install step failed, skipping the
+    # intended "Could not install gum, using basic prompts" fallback below.
+    # `|| true` neutralizes that so failures here always fall through.
     case "$OS" in
         ubuntu|debian)
             # Add Charm repository
             mkdir -p /etc/apt/keyrings
             curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg 2>/dev/null
             echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" > /etc/apt/sources.list.d/charm.list
-            apt-get update -qq && apt-get install -y -qq gum
+            apt-get update -qq && apt-get install -y -qq gum || true
             ;;
         fedora|rhel|centos)
             echo '[charm]
@@ -187,12 +195,12 @@ baseurl=https://repo.charm.sh/yum/
 enabled=1
 gpgcheck=1
 gpgkey=https://repo.charm.sh/yum/gpg.key' > /etc/yum.repos.d/charm.repo
-            dnf install -y gum 2>/dev/null || yum install -y gum
+            dnf install -y gum 2>/dev/null || yum install -y gum || true
             ;;
         *)
             # Try go install as fallback
             if command -v go &> /dev/null; then
-                go install github.com/charmbracelet/gum@latest
+                go install github.com/charmbracelet/gum@latest || true
             fi
             ;;
     esac
@@ -213,7 +221,12 @@ gum_spin() {
     local title="$1"
     shift
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum spin --spinner dot --title "$title" -- "$@"
+        # --show-error: by default `gum spin` swallows the wrapped command's
+        # stdout/stderr entirely (success or failure), so a failing apt-get,
+        # curl, or systemctl call here would abort the script (set -e) with
+        # no diagnostic at all. Surface output only when the command fails,
+        # keeping the quiet spinner on the success path.
+        gum spin --spinner dot --title "$title" --show-error -- "$@"
     else
         echo "$title"
         "$@"
@@ -562,14 +575,6 @@ services:
     depends_on:
       traefik:
         condition: service_healthy
-
-networks:
-  station-network:
-    name: station-network
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
 COMPOSE_EOF
 
     # Replace version placeholder
@@ -616,6 +621,22 @@ WATCHTOWER_EOF
         print_success "Added Watchtower service to docker-compose.yml"
     fi
 
+    # Top-level networks block MUST be appended last: it has to come after
+    # every service (including the optional Watchtower service above), or
+    # whatever service block was last in the file ends up nested under
+    # networks: instead of services: (invalid compose, services silently
+    # fail to start). See docker-compose.yml networks.watchtower bug.
+    cat >> docker-compose.yml << 'NETWORKS_EOF'
+
+networks:
+  station-network:
+    name: station-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+NETWORKS_EOF
+
     print_success "Created docker-compose.yml"
     echo ""
 }
@@ -625,19 +646,23 @@ PROJECT_ROOT="$(pwd)"
 
 # Station version - fetched dynamically from qnch.network
 VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-rc.1"
+FALLBACK_VERSION="0.1.0-rc.2"
 
 fetch_latest_version() {
     local version=""
 
     # Try python3 + curl first
+    # -L is required: qnch.network/version.json 307-redirects to
+    # www.qnch.network/version.json. Without it curl -f (which only treats
+    # HTTP >=400 as failure) "succeeds" with the redirect body instead of
+    # the JSON, silently pinning every install to FALLBACK_VERSION forever.
     if command -v python3 &> /dev/null; then
-        version=$(curl -sf "$VERSION_URL" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null)
+        version=$(curl -sfL "$VERSION_URL" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null)
     fi
 
     # Try jq + curl as fallback
     if [ -z "$version" ] && command -v jq &> /dev/null; then
-        version=$(curl -sf "$VERSION_URL" 2>/dev/null | jq -r '.version' 2>/dev/null)
+        version=$(curl -sfL "$VERSION_URL" 2>/dev/null | jq -r '.version' 2>/dev/null)
     fi
 
     # Return fetched version or fallback
@@ -793,8 +818,14 @@ if [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
     echo "Currently in use: ${PORTS_IN_USE[*]}"
     echo ""
     echo "Services using these ports:"
-    timeout 5 ss -tulnp 2>/dev/null | grep -E ":(${PORTS_IN_USE[*]}) " || \
-    timeout 5 netstat -tulnp 2>/dev/null | grep -E ":(${PORTS_IN_USE[*]}) " || \
+    # ERE alternation needs ports joined with "|" (e.g. "80|443"). ${arr[*]}
+    # joins with a plain space by default, producing ":(80 443) " — a
+    # pattern that greps for the literal substring "80 443" and therefore
+    # never matches real ss/netstat output, always falling through to
+    # "(could not determine)".
+    PORTS_REGEX=$(IFS='|'; echo "${PORTS_IN_USE[*]}")
+    timeout 5 ss -tulnp 2>/dev/null | grep -E ":(${PORTS_REGEX}) " || \
+    timeout 5 netstat -tulnp 2>/dev/null | grep -E ":(${PORTS_REGEX}) " || \
     echo "  (could not determine)"
     echo ""
     if ! gum_confirm "Stop these services and continue?" "no"; then
@@ -843,11 +874,17 @@ DOMAIN_REQ
     echo ""
 
     # Get this server's public IP
+    # Trailing `|| true` in both branches: if BOTH IP-echo services are
+    # unreachable, the last command in the `||` chain fails and, under
+    # set -e, `SERVER_IP=$(...)` failing would abort the whole script —
+    # skipping the manual-entry fallback right below this. `|| true` makes
+    # the substitution always "succeed" (with an empty SERVER_IP), which is
+    # exactly what that fallback already expects and handles.
     if [ "$GUM_AVAILABLE" = true ]; then
-        SERVER_IP=$(gum spin --spinner dot --title "Detecting server's public IP..." -- bash -c 'curl -s https://api.ipify.org || curl -s https://ifconfig.me')
+        SERVER_IP=$(gum spin --spinner dot --title "Detecting server's public IP..." -- bash -c 'curl -s https://api.ipify.org || curl -s https://ifconfig.me || true')
     else
         print_step "Detecting server's public IP address..."
-        SERVER_IP=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me)
+        SERVER_IP=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || true)
     fi
 
     if [ -z "$SERVER_IP" ]; then
@@ -1303,6 +1340,7 @@ done
 
 if [ $attempt -eq $max_attempts ]; then
     print_warning "Traefik health check timed out (but may still be working)"
+    echo "Check logs: docker compose -f docker-compose.yml logs traefik"
 fi
 
 echo ""
