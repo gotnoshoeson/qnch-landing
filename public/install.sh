@@ -474,15 +474,6 @@ services:
       retries: 3
       start_period: 10s
 
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-
     logging:
       driver: "json-file"
       options:
@@ -565,15 +556,6 @@ services:
       # Watchtower scope label - only update Station, not Traefik
       - "com.centurylinklabs.watchtower.scope=station"
 
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
     logging:
       driver: "json-file"
       options:
@@ -624,12 +606,6 @@ COMPOSE_EOF
     networks:
       - station-network
 
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-
     logging:
       driver: "json-file"
       options:
@@ -664,7 +640,7 @@ PROJECT_ROOT="$(pwd)"
 
 # Station version - fetched dynamically from qnch.network
 VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-rc.3"
+FALLBACK_VERSION="0.1.0-rc.4"
 
 fetch_latest_version() {
     local version=""
