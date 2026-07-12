@@ -495,18 +495,29 @@ services:
     container_name: station-node
     restart: unless-stopped
 
+    # The binary is flag+env configured (Go stdlib `flag`; see
+    # cmd/station/main.go) — there is no --config flag and nothing reads a
+    # YAML config file. --data-dir is NOT optional: without it the process
+    # falls back to $HOME/.station inside the container instead of the /data
+    # volume below, so identity key / catalog / SQLite state would silently
+    # fail to persist across container recreates. This mirrors the image's
+    # own default CMD (Dockerfile) so it works even against an older image
+    # tag whose baked-in CMD predates this fix.
+    command: ["station", "start", "--data-dir", "/data", "--port", "8080"]
+
     ports:
       - "4001:4001"         # libp2p swarm TCP
       - "4002:4002/udp"     # libp2p swarm QUIC
 
     volumes:
       - ./data:/data
-      - ./config:/config
 
     environment:
+      # NOTE: not read by the binary today (no STATION_LOG_LEVEL consumer in
+      # cmd/station or pkg/) — left in place as a documented, currently-inert
+      # knob rather than silently dropped. Data dir is set via the `command:`
+      # flag above, not an env var — main.go has no STATION_DATA_DIR reader.
       - STATION_LOG_LEVEL=${STATION_LOG_LEVEL:-info}
-      - STATION_DATA_DIR=/data
-      - STATION_CONFIG=/config/station.yml
       # Environment: which P2P directory this node joins (production | testnet | local).
       - STATION_NETWORK=${STATION_NETWORK:-production}
       # Chain override (optional): polkadot-hub | kusama-hub | paseo | local | local-dummy.
@@ -585,13 +596,20 @@ COMPOSE_EOF
         cat >> docker-compose.yml << 'WATCHTOWER_EOF'
 
   # Watchtower - Automatic Docker Image Updates
+  # nickfedor/watchtower is the maintained fork; containrrr is archived (2025) and
+  # its last image (2023) speaks a Docker API too old for Engine v29+ (client 1.25 < min 1.40).
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:1.19.0
     container_name: station-watchtower
     restart: unless-stopped
 
+    # NOT :ro — unlike Traefik's docker.sock mount (which only reads
+    # container metadata for routing), Watchtower has to stop/recreate
+    # containers and pull images, which needs a writable socket. The
+    # official containrrr docs mount it read-write; :ro is a documented
+    # source of "Restarting" crash-loops for this image.
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
 
     environment:
       - WATCHTOWER_SCOPE=station
@@ -646,7 +664,7 @@ PROJECT_ROOT="$(pwd)"
 
 # Station version - fetched dynamically from qnch.network
 VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-rc.2"
+FALLBACK_VERSION="0.1.0-rc.3"
 
 fetch_latest_version() {
     local version=""
@@ -1085,9 +1103,17 @@ print_step "Setting up directories..."
 cd "$PROJECT_ROOT"
 
 mkdir -p data
-mkdir -p config
 mkdir -p traefik
 mkdir -p logs
+
+# The station container runs as a non-root user, UID:GID 1000:1000 (see
+# Dockerfile: `addgroup -g 1000 station && adduser -u 1000 -G station`).
+# ./data is bind-mounted over the image's own /data, which shadows whatever
+# ownership the image set internally — the HOST directory's ownership is what
+# actually governs write access at runtime. Without this, station's identity
+# key / catalog / SQLite writes fail with a permission error (this directory
+# is created by this script running as root, so it defaults to root:root).
+chown -R 1000:1000 data
 
 # Initialize acme.json with correct permissions
 touch traefik/acme.json
@@ -1135,9 +1161,11 @@ ACME_EMAIL=$ACME_EMAIL
 ACME_PRODUCTION=$ACME_PRODUCTION
 
 # Station Configuration
+# NOTE: not read by the binary today (no consumer in cmd/station or pkg/) —
+# left in place as a documented, currently-inert knob rather than silently
+# dropped. The data directory is fixed to /data via docker-compose.yml's
+# station service `command:` (--data-dir flag), not an env var here.
 STATION_LOG_LEVEL=info
-STATION_DATA_DIR=/data
-STATION_CONFIG=/config/station.yml
 
 # Environment: production (mainnet directory) | testnet | local
 # Set by setup-station.sh --network; selects the P2P directory this node
