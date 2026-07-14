@@ -640,7 +640,7 @@ PROJECT_ROOT="$(pwd)"
 
 # Station version - fetched dynamically from qnch.network
 VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-rc.4"
+FALLBACK_VERSION="0.1.0-rc.5"
 
 fetch_latest_version() {
     local version=""
