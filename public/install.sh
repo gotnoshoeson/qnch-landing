@@ -88,7 +88,7 @@ BANNER
     if [ "$GUM_AVAILABLE" = true ]; then
         echo "$banner" | gum style --foreground 212 --bold
         echo ""
-        gum style --foreground 99 --bold "         Setup Wizard v$STATION_VERSION"
+        gum style --foreground 99 --bold "         Setup Wizard"
     else
         echo -e "${PURPLE} ██████╗ ${CYAN}███╗   ██╗${PURPLE} ██████╗${CYAN}██╗  ██╗${NC}"
         echo -e "${PURPLE}██╔═══██╗${CYAN}████╗  ██║${PURPLE}██╔════╝${CYAN}██║  ██║${NC}"
@@ -97,7 +97,7 @@ BANNER
         echo -e "${PURPLE}╚██████╔╝${CYAN}██║ ╚████║${PURPLE}╚██████╗${CYAN}██║  ██║${NC}"
         echo -e "${PURPLE} ╚══▀▀═╝ ${CYAN}╚═╝  ╚═══╝${PURPLE} ╚═════╝${CYAN}╚═╝  ╚═╝${NC}"
         echo ""
-        echo -e "${BOLD}         Setup Wizard v$STATION_VERSION${NC}"
+        echo -e "${BOLD}         Setup Wizard${NC}"
     fi
     echo ""
 }
@@ -482,7 +482,7 @@ services:
 
   # Station Artist Node - P2P Music Streaming Backend
   station:
-    image: ghcr.io/gotnoshoeson/station:STATION_VERSION
+    image: ghcr.io/gotnoshoeson/station:edge
     container_name: station-node
     restart: unless-stopped
 
@@ -570,9 +570,6 @@ services:
         condition: service_healthy
 COMPOSE_EOF
 
-    # Replace version placeholder
-    sed -i "s|STATION_VERSION|$STATION_VERSION|g" docker-compose.yml
-
     # Add Watchtower service if enabled
     if [ "$ENABLE_WATCHTOWER" = true ]; then
         cat >> docker-compose.yml << 'WATCHTOWER_EOF'
@@ -637,37 +634,6 @@ NETWORKS_EOF
 
 # Use current working directory for all operations
 PROJECT_ROOT="$(pwd)"
-
-# Station version - fetched dynamically from qnch.network
-VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-rc.5"
-
-fetch_latest_version() {
-    local version=""
-
-    # Try python3 + curl first
-    # -L is required: qnch.network/version.json 307-redirects to
-    # www.qnch.network/version.json. Without it curl -f (which only treats
-    # HTTP >=400 as failure) "succeeds" with the redirect body instead of
-    # the JSON, silently pinning every install to FALLBACK_VERSION forever.
-    if command -v python3 &> /dev/null; then
-        version=$(curl -sfL "$VERSION_URL" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null)
-    fi
-
-    # Try jq + curl as fallback
-    if [ -z "$version" ] && command -v jq &> /dev/null; then
-        version=$(curl -sfL "$VERSION_URL" 2>/dev/null | jq -r '.version' 2>/dev/null)
-    fi
-
-    # Return fetched version or fallback
-    if [ -n "$version" ] && [ "$version" != "null" ]; then
-        echo "$version"
-    else
-        echo "$FALLBACK_VERSION"
-    fi
-}
-
-STATION_VERSION=$(fetch_latest_version)
 
 print_banner
 
