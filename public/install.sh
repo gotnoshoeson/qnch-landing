@@ -12,6 +12,66 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# ----------------------------------------------------------------------------
+# Environment target (deploy-time choice): which P2P directory this node
+# joins. Artists run the bare script and get production (mainnet directory,
+# "/station"); testnet deploys pass --network testnet ("/station/testnet");
+# local dev uses --network local ("/station/local"). The choice is baked into
+# the generated .env here, so the operator never hand-edits it.
+#
+# STATION_CHAIN is a separate, optional axis: which EVM chain the artist's
+# contracts live on (polkadot-hub | kusama-hub | paseo | local | local-dummy).
+# On a real node this is picked from the artist dashboard after first login —
+# leave --chain unset. Only pass --chain for automation/scripted setups (CI,
+# local multi-node testing) that need to skip the picker.
+# ----------------------------------------------------------------------------
+NETWORK="production"
+CHAIN=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --network=*)
+            NETWORK="${1#*=}"
+            shift
+            ;;
+        --network)
+            shift
+            NETWORK="${1:-}"
+            [ $# -eq 0 ] || shift
+            ;;
+        --chain=*)
+            CHAIN="${1#*=}"
+            shift
+            ;;
+        --chain)
+            shift
+            CHAIN="${1:-}"
+            [ $# -eq 0 ] || shift
+            ;;
+        -h|--help)
+            echo "Usage: $(basename "$0") [--network production|testnet|local] [--chain polkadot-hub|kusama-hub|paseo|local|local-dummy]"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+case "$NETWORK" in
+    production|testnet|local) ;;
+    *)
+        echo "Invalid --network '$NETWORK' (expected: production, testnet, local)" >&2
+        exit 1
+        ;;
+esac
+case "$CHAIN" in
+    ""|polkadot-hub|kusama-hub|paseo|local|local-dummy) ;;
+    *)
+        echo "Invalid --chain '$CHAIN' (expected: polkadot-hub, kusama-hub, paseo, local, local-dummy)" >&2
+        exit 1
+        ;;
+esac
+
 # Print the QNCH ASCII banner
 print_banner() {
     local banner
@@ -28,7 +88,7 @@ BANNER
     if [ "$GUM_AVAILABLE" = true ]; then
         echo "$banner" | gum style --foreground 212 --bold
         echo ""
-        gum style --foreground 99 --bold "         Setup Wizard v$STATION_VERSION"
+        gum style --foreground 99 --bold "         Setup Wizard"
     else
         echo -e "${PURPLE} ██████╗ ${CYAN}███╗   ██╗${PURPLE} ██████╗${CYAN}██╗  ██╗${NC}"
         echo -e "${PURPLE}██╔═══██╗${CYAN}████╗  ██║${PURPLE}██╔════╝${CYAN}██║  ██║${NC}"
@@ -37,7 +97,7 @@ BANNER
         echo -e "${PURPLE}╚██████╔╝${CYAN}██║ ╚████║${PURPLE}╚██████╗${CYAN}██║  ██║${NC}"
         echo -e "${PURPLE} ╚══▀▀═╝ ${CYAN}╚═╝  ╚═══╝${PURPLE} ╚═════╝${CYAN}╚═╝  ╚═╝${NC}"
         echo ""
-        echo -e "${BOLD}         Setup Wizard v$STATION_VERSION${NC}"
+        echo -e "${BOLD}         Setup Wizard${NC}"
     fi
     echo ""
 }
@@ -112,13 +172,21 @@ setup_gum() {
         OS=$ID
     fi
 
+    # NOTE: every branch below ends with `|| true`. gum is optional (there's
+    # a full non-gum prompt fallback after this case statement), but under
+    # `set -e`, the LAST command of an && / || chain is NOT exempt from -e
+    # even though earlier commands in the same chain are — so e.g. a bare
+    # `apt-get update -qq && apt-get install -y -qq gum` would abort the
+    # ENTIRE installer if just the install step failed, skipping the
+    # intended "Could not install gum, using basic prompts" fallback below.
+    # `|| true` neutralizes that so failures here always fall through.
     case "$OS" in
         ubuntu|debian)
             # Add Charm repository
             mkdir -p /etc/apt/keyrings
             curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg 2>/dev/null
             echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" > /etc/apt/sources.list.d/charm.list
-            apt-get update -qq && apt-get install -y -qq gum
+            apt-get update -qq && apt-get install -y -qq gum || true
             ;;
         fedora|rhel|centos)
             echo '[charm]
@@ -127,12 +195,12 @@ baseurl=https://repo.charm.sh/yum/
 enabled=1
 gpgcheck=1
 gpgkey=https://repo.charm.sh/yum/gpg.key' > /etc/yum.repos.d/charm.repo
-            dnf install -y gum 2>/dev/null || yum install -y gum
+            dnf install -y gum 2>/dev/null || yum install -y gum || true
             ;;
         *)
             # Try go install as fallback
             if command -v go &> /dev/null; then
-                go install github.com/charmbracelet/gum@latest
+                go install github.com/charmbracelet/gum@latest || true
             fi
             ;;
     esac
@@ -153,7 +221,12 @@ gum_spin() {
     local title="$1"
     shift
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum spin --spinner dot --title "$title" -- "$@"
+        # --show-error: by default `gum spin` swallows the wrapped command's
+        # stdout/stderr entirely (success or failure), so a failing apt-get,
+        # curl, or systemctl call here would abort the script (set -e) with
+        # no diagnostic at all. Surface output only when the command fails,
+        # keeping the quiet spinner on the success path.
+        gum spin --spinner dot --title "$title" --show-error -- "$@"
     else
         echo "$title"
         "$@"
@@ -389,7 +462,7 @@ services:
 
     environment:
       - ACME_EMAIL=${ACME_EMAIL}
-      - ACME_PRODUCTION=${ACME_PRODUCTION:-false}
+      - ACME_PRODUCTION=${ACME_PRODUCTION:-true}
 
     networks:
       - station-network
@@ -401,15 +474,6 @@ services:
       retries: 3
       start_period: 10s
 
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-
     logging:
       driver: "json-file"
       options:
@@ -418,9 +482,19 @@ services:
 
   # Station Artist Node - P2P Music Streaming Backend
   station:
-    image: ghcr.io/gotnoshoeson/station:STATION_VERSION
+    image: ghcr.io/gotnoshoeson/station:edge
     container_name: station-node
     restart: unless-stopped
+
+    # The binary is flag+env configured (Go stdlib `flag`; see
+    # cmd/station/main.go) — there is no --config flag and nothing reads a
+    # YAML config file. --data-dir is NOT optional: without it the process
+    # falls back to $HOME/.station inside the container instead of the /data
+    # volume below, so identity key / catalog / SQLite state would silently
+    # fail to persist across container recreates. This mirrors the image's
+    # own default CMD (Dockerfile) so it works even against an older image
+    # tag whose baked-in CMD predates this fix.
+    command: ["station", "start", "--data-dir", "/data", "--port", "8080"]
 
     ports:
       - "4001:4001"         # libp2p swarm TCP
@@ -428,15 +502,19 @@ services:
 
     volumes:
       - ./data:/data
-      - ./config:/config
-      - ./music:/music:ro
 
     environment:
+      # NOTE: not read by the binary today (no STATION_LOG_LEVEL consumer in
+      # cmd/station or pkg/) — left in place as a documented, currently-inert
+      # knob rather than silently dropped. Data dir is set via the `command:`
+      # flag above, not an env var — main.go has no STATION_DATA_DIR reader.
       - STATION_LOG_LEVEL=${STATION_LOG_LEVEL:-info}
-      - STATION_DATA_DIR=/data
-      - STATION_CONFIG=/config/station.yml
-      - STATION_MUSIC_DIR=/music
-      - STATION_BOOTSTRAP_PEERS=${STATION_BOOTSTRAP_PEERS:-/dns4/theramble.duckdns.org/tcp/4001/p2p/12D3KooWACcJjwyRZfz9hSXDTANF4uQXZaNaeuDZmCKUReK8dw8F}
+      # Environment: which P2P directory this node joins (production | testnet | local).
+      - STATION_NETWORK=${STATION_NETWORK:-production}
+      # Chain override (optional): polkadot-hub | kusama-hub | paseo | local | local-dummy.
+      # Leave unset to pick the chain from the artist dashboard instead.
+      - STATION_CHAIN=${STATION_CHAIN:-}
+      - STATION_BOOTSTRAP_PEERS=${STATION_BOOTSTRAP_PEERS}
       - STATION_ANNOUNCE_ADDRS=${STATION_ANNOUNCE_ADDRS}
       - TZ=${TZ:-UTC}
 
@@ -478,15 +556,6 @@ services:
       # Watchtower scope label - only update Station, not Traefik
       - "com.centurylinklabs.watchtower.scope=station"
 
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
     logging:
       driver: "json-file"
       options:
@@ -499,31 +568,27 @@ services:
     depends_on:
       traefik:
         condition: service_healthy
-
-networks:
-  station-network:
-    name: station-network
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
 COMPOSE_EOF
-
-    # Replace version placeholder
-    sed -i "s|STATION_VERSION|$STATION_VERSION|g" docker-compose.yml
 
     # Add Watchtower service if enabled
     if [ "$ENABLE_WATCHTOWER" = true ]; then
         cat >> docker-compose.yml << 'WATCHTOWER_EOF'
 
   # Watchtower - Automatic Docker Image Updates
+  # nickfedor/watchtower is the maintained fork; containrrr is archived (2025) and
+  # its last image (2023) speaks a Docker API too old for Engine v29+ (client 1.25 < min 1.40).
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:1.19.0
     container_name: station-watchtower
     restart: unless-stopped
 
+    # NOT :ro — unlike Traefik's docker.sock mount (which only reads
+    # container metadata for routing), Watchtower has to stop/recreate
+    # containers and pull images, which needs a writable socket. The
+    # official containrrr docs mount it read-write; :ro is a documented
+    # source of "Restarting" crash-loops for this image.
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
 
     environment:
       - WATCHTOWER_SCOPE=station
@@ -538,12 +603,6 @@ COMPOSE_EOF
     networks:
       - station-network
 
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-
     logging:
       driver: "json-file"
       options:
@@ -553,39 +612,28 @@ WATCHTOWER_EOF
         print_success "Added Watchtower service to docker-compose.yml"
     fi
 
+    # Top-level networks block MUST be appended last: it has to come after
+    # every service (including the optional Watchtower service above), or
+    # whatever service block was last in the file ends up nested under
+    # networks: instead of services: (invalid compose, services silently
+    # fail to start). See docker-compose.yml networks.watchtower bug.
+    cat >> docker-compose.yml << 'NETWORKS_EOF'
+
+networks:
+  station-network:
+    name: station-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+NETWORKS_EOF
+
     print_success "Created docker-compose.yml"
     echo ""
 }
 
 # Use current working directory for all operations
 PROJECT_ROOT="$(pwd)"
-
-# Station version - fetched dynamically from qnch.network
-VERSION_URL="https://qnch.network/version.json"
-FALLBACK_VERSION="0.1.0-beta.52"
-
-fetch_latest_version() {
-    local version=""
-
-    # Try python3 + curl first
-    if command -v python3 &> /dev/null; then
-        version=$(curl -sf "$VERSION_URL" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null)
-    fi
-
-    # Try jq + curl as fallback
-    if [ -z "$version" ] && command -v jq &> /dev/null; then
-        version=$(curl -sf "$VERSION_URL" 2>/dev/null | jq -r '.version' 2>/dev/null)
-    fi
-
-    # Return fetched version or fallback
-    if [ -n "$version" ] && [ "$version" != "null" ]; then
-        echo "$version"
-    else
-        echo "$FALLBACK_VERSION"
-    fi
-}
-
-STATION_VERSION=$(fetch_latest_version)
 
 print_banner
 
@@ -730,8 +778,14 @@ if [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
     echo "Currently in use: ${PORTS_IN_USE[*]}"
     echo ""
     echo "Services using these ports:"
-    timeout 5 ss -tulnp 2>/dev/null | grep -E ":(${PORTS_IN_USE[*]}) " || \
-    timeout 5 netstat -tulnp 2>/dev/null | grep -E ":(${PORTS_IN_USE[*]}) " || \
+    # ERE alternation needs ports joined with "|" (e.g. "80|443"). ${arr[*]}
+    # joins with a plain space by default, producing ":(80 443) " — a
+    # pattern that greps for the literal substring "80 443" and therefore
+    # never matches real ss/netstat output, always falling through to
+    # "(could not determine)".
+    PORTS_REGEX=$(IFS='|'; echo "${PORTS_IN_USE[*]}")
+    timeout 5 ss -tulnp 2>/dev/null | grep -E ":(${PORTS_REGEX}) " || \
+    timeout 5 netstat -tulnp 2>/dev/null | grep -E ":(${PORTS_REGEX}) " || \
     echo "  (could not determine)"
     echo ""
     if ! gum_confirm "Stop these services and continue?" "no"; then
@@ -780,11 +834,17 @@ DOMAIN_REQ
     echo ""
 
     # Get this server's public IP
+    # Trailing `|| true` in both branches: if BOTH IP-echo services are
+    # unreachable, the last command in the `||` chain fails and, under
+    # set -e, `SERVER_IP=$(...)` failing would abort the whole script —
+    # skipping the manual-entry fallback right below this. `|| true` makes
+    # the substitution always "succeed" (with an empty SERVER_IP), which is
+    # exactly what that fallback already expects and handles.
     if [ "$GUM_AVAILABLE" = true ]; then
-        SERVER_IP=$(gum spin --spinner dot --title "Detecting server's public IP..." -- bash -c 'curl -s https://api.ipify.org || curl -s https://ifconfig.me')
+        SERVER_IP=$(gum spin --spinner dot --title "Detecting server's public IP..." -- bash -c 'curl -s https://api.ipify.org || curl -s https://ifconfig.me || true')
     else
         print_step "Detecting server's public IP address..."
-        SERVER_IP=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me)
+        SERVER_IP=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || true)
     fi
 
     if [ -z "$SERVER_IP" ]; then
@@ -930,50 +990,14 @@ echo ""
 # Step 4: ACME Environment
 # ============================================================================
 
-print_step "Certificate Generation Mode"
-echo ""
-if [ "$GUM_AVAILABLE" = true ]; then
-    cat << 'CERT_INFO' | gum format
-Let's Encrypt has two modes:
-
-**STAGING** _(recommended for first-time setup)_
-* No rate limits (test freely)
-* Self-signed certificates (browser warnings)
-* Perfect for testing configuration
-
-**PRODUCTION** _(for live use)_
-* Trusted certificates (no warnings)
-* Rate limited: 5 duplicate certs per week
-* Use after testing in staging mode
-
-> Recommendation: Start with STAGING, switch to PRODUCTION once working.
-CERT_INFO
-else
-    echo "Let's Encrypt has two modes:"
-    echo ""
-    echo "  STAGING (recommended for first-time setup):"
-    echo "    • No rate limits (test freely)"
-    echo "    • Self-signed certificates (browser warnings)"
-    echo "    • Perfect for testing configuration"
-    echo ""
-    echo "  PRODUCTION (for live use):"
-    echo "    • Trusted certificates (no warnings)"
-    echo "    • Rate limited: 5 duplicate certs per week"
-    echo "    • Use after testing in staging mode"
-    echo ""
-    echo "Recommendation: Start with STAGING, switch to PRODUCTION once working."
-fi
+print_step "Certificate Generation"
 echo ""
 
-if gum_confirm "Use STAGING mode? (recommended for first-time setup)" "yes"; then
-    ACME_PRODUCTION="false"
-    print_info "Using STAGING mode (certificate warnings are normal)"
-else
-    ACME_PRODUCTION="true"
-    print_warning "Using PRODUCTION mode"
-    print_info "Let's Encrypt limits you to 5 duplicate certificates per week."
-    print_info "If something goes wrong, you may need to wait before retrying."
-fi
+# Always use Let's Encrypt production certificates. Staging certs are signed by
+# a CA browsers reject, so the listener app can't reach a staging node.
+ACME_PRODUCTION="true"
+print_info "Using Let's Encrypt production certificates (trusted, no browser warnings)."
+print_info "Let's Encrypt limits you to 5 duplicate certificates per week."
 
 echo ""
 
@@ -1021,10 +1045,17 @@ print_step "Setting up directories..."
 cd "$PROJECT_ROOT"
 
 mkdir -p data
-mkdir -p config
-mkdir -p music
 mkdir -p traefik
 mkdir -p logs
+
+# The station container runs as a non-root user, UID:GID 1000:1000 (see
+# Dockerfile: `addgroup -g 1000 station && adduser -u 1000 -G station`).
+# ./data is bind-mounted over the image's own /data, which shadows whatever
+# ownership the image set internally — the HOST directory's ownership is what
+# actually governs write access at runtime. Without this, station's identity
+# key / catalog / SQLite writes fail with a permission error (this directory
+# is created by this script running as root, so it defaults to root:root).
+chown -R 1000:1000 data
 
 # Initialize acme.json with correct permissions
 touch traefik/acme.json
@@ -1045,6 +1076,21 @@ generate_docker_compose
 
 print_step "Generating configuration files..."
 
+print_info "Target environment: $NETWORK"
+if [ -n "$CHAIN" ]; then
+    print_info "Chain override: $CHAIN"
+else
+    print_info "Chain: not set — pick your chain from the artist dashboard after first login"
+fi
+
+# Chain override line: written live only when --chain was passed, otherwise
+# left commented out (discoverable, but the dashboard picker stays in charge).
+if [ -n "$CHAIN" ]; then
+    CHAIN_LINE="STATION_CHAIN=$CHAIN"
+else
+    CHAIN_LINE="# STATION_CHAIN="
+fi
+
 # Generate .env file
 cat > .env << EOF
 # Station Domain Configuration
@@ -1053,18 +1099,35 @@ STATION_DOMAIN=$STATION_DOMAIN
 # Let's Encrypt Email
 ACME_EMAIL=$ACME_EMAIL
 
-# Certificate Mode (true=production, false=staging)
+# Certificate Mode (always production; Let's Encrypt trusted certs)
 ACME_PRODUCTION=$ACME_PRODUCTION
 
 # Station Configuration
+# NOTE: not read by the binary today (no consumer in cmd/station or pkg/) —
+# left in place as a documented, currently-inert knob rather than silently
+# dropped. The data directory is fixed to /data via docker-compose.yml's
+# station service `command:` (--data-dir flag), not an env var here.
 STATION_LOG_LEVEL=info
-STATION_DATA_DIR=/data
-STATION_CONFIG=/config/station.yml
-STATION_MUSIC_DIR=/music
 
-# Bootstrap peers (comma-separated multiaddrs)
-# Default: Official Station bootstrap node
-STATION_BOOTSTRAP_PEERS=/dns4/theramble.duckdns.org/tcp/4001/p2p/12D3KooWACcJjwyRZfz9hSXDTANF4uQXZaNaeuDZmCKUReK8dw8F
+# Environment: production (mainnet directory) | testnet | local
+# Set by setup-station.sh --network; selects the P2P directory this node
+# joins (/station, /station/testnet, or /station/local). Does NOT select
+# the chain — see STATION_CHAIN below.
+STATION_NETWORK=$NETWORK
+
+# Chain override (optional): polkadot-hub | kusama-hub | paseo | local | local-dummy
+# Set by setup-station.sh --chain. Leave unset (commented out) to pick your
+# chain from the artist dashboard on first login — that's the normal path.
+# Only automation/scripted setups (CI, local multi-node testing) should set
+# this directly. A chain that doesn't belong to STATION_NETWORK's environment
+# is silently ignored by the node (falls back to chain-less).
+$CHAIN_LINE
+
+# Bootstrap peers (comma-separated multiaddrs) — OVERRIDE ONLY.
+# Leave unset to use the network's built-in seeds (from the committed profile).
+# Set this to point at a custom seed, or to "none" to disable bootstrap
+# (the first bootnode of a network runs with no seeds — it IS the seed).
+# STATION_BOOTSTRAP_PEERS=
 
 # Public announce address for DHT (derived from domain)
 # This tells other peers how to reach this node through Traefik
@@ -1086,12 +1149,8 @@ fi
 
 print_success "Created .env"
 
-# Generate traefik.yml with dynamic CA server based on mode
-if [ "$ACME_PRODUCTION" = "true" ]; then
-    CA_SERVER="https://acme-v02.api.letsencrypt.org/directory"
-else
-    CA_SERVER="https://acme-staging-v02.api.letsencrypt.org/directory"
-fi
+# Generate traefik.yml with Let's Encrypt production CA server
+CA_SERVER="https://acme-v02.api.letsencrypt.org/directory"
 
 cat > traefik/traefik.yml << EOF
 # Traefik Static Configuration
@@ -1194,12 +1253,12 @@ if [ "$GUM_AVAILABLE" = true ]; then
     gum style --border rounded --border-foreground 99 --padding "1 2" \
         "Domain:           $STATION_DOMAIN" \
         "Email:            $ACME_EMAIL" \
-        "Certificate:      $([ "$ACME_PRODUCTION" = "true" ] && echo "Production" || echo "Staging")" \
+        "Certificate:      Production" \
         "Domain Type:      $DOMAIN_TYPE"
 else
     echo "  Domain:              $STATION_DOMAIN"
     echo "  Email:               $ACME_EMAIL"
-    echo "  Certificate Mode:    $([ "$ACME_PRODUCTION" = "true" ] && echo "Production" || echo "Staging")"
+    echo "  Certificate Mode:    Production"
     echo "  Domain Type:         $DOMAIN_TYPE"
 fi
 echo ""
@@ -1251,6 +1310,7 @@ done
 
 if [ $attempt -eq $max_attempts ]; then
     print_warning "Traefik health check timed out (but may still be working)"
+    echo "Check logs: docker compose -f docker-compose.yml logs traefik"
 fi
 
 echo ""
@@ -1366,17 +1426,6 @@ else
 fi
 echo ""
 
-if [ "$ACME_PRODUCTION" = "false" ]; then
-    if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 214 --italic \
-            "Note: Using staging certificates (browser warnings expected)." \
-            "Run 'bash switch-to-production.sh' later for trusted certificates."
-    else
-        echo "Note: Using staging certificates (browser warnings expected)."
-        echo "Run 'bash switch-to-production.sh' later to get trusted certificates."
-    fi
-    echo ""
-fi
 
 if [ "$GUM_AVAILABLE" = true ]; then
     cat << COMMANDS | gum format
