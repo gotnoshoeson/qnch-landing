@@ -1,29 +1,48 @@
 ---
+import { Image } from 'astro:assets';
+import newRelease from '../assets/NewRelease.png';
+import catalog from '../assets/Catalog.png';
+import storefront from '../assets/Storefront.png';
+import fanClub from '../assets/FanClub.png';
+import treasury from '../assets/Treasury.png';
+import settings from '../assets/Settings.png';
+
 const rows = [
-	
 	{
-		name: 'New Release',
-		body: 'Add album artwork and data. Upload lossless audio at any quality you want. Keep in mind, higher quality = larger file size = more compute = higher cost server.',
-	},
-	{
+		id: 'catalog',
 		name: 'Catalog',
-		body: 'Stage and publish releases. Schedule album release dates and override individual track releases to tease the release. Schedule an early release date for fans.',
+		shot: catalog,
+		body: 'Stage and publish releases. Schedule album release dates and override individual track releases to tease the release. Schedule an early release date for fans or provide fan only access to releases and tracks.',
 	},
 	{
+		id: 'new-release',
+		name: 'New Release',
+		shot: newRelease,
+		body: 'Add album artwork and data. Upload lossless audio at any quality you want. Keep in mind, higher quality = larger file size = more compute = higher server costs.',
+	},
+	{
+		id: 'storefront',
 		name: 'Storefront',
-		body: 'Set pricing for tracks and albums. Price in the native token or a stablecoin. Rent an album for a set window — stream-only, then it closes on its own.',
+		shot: storefront,
+		body: 'Set pricing for tracks and albums. Payments can be accepted in the native token and/or stablecoins; Station leaves this decision with each artist. Albums can also be rented as a compromise between giving music away for free and gating the music behind an album purchase; again, an artist choice.',
 	},
 	{
+		id: 'fan-club',
 		name: 'Fan Club',
-		body: 'Use the FanSociety protocol from your dashboard. This is meant to grow with your career and help manage your fanbase; treat it with care.',
+		shot: fanClub,
+		body: 'Use the FanSociety protocol from your dashboard, it integrates with your Catalog natively. This fanclub feature is built to last the entire lifetime of an artist.',
 	},
 	{
+		id: 'treasury',
 		name: 'Treasury',
+		shot: treasury,
 		body: 'Advanced account setup to manage your earnings. Native multisig ownership is on the way; artists can use third party services now.',
 	},
 	{
+		id: 'settings',
 		name: 'Settings',
-		body: "Namespace, peer ID, DHT status, routing table size, RPC endpoints, update policy, device limits. Lots of options, the power is in your hands, not a platform's.",
+		shot: settings,
+		body: "Lots of options to customize Station to your standards. The power is in your hands, not a platform's.",
 	},
 ];
 ---
@@ -33,21 +52,55 @@ const rows = [
 		<span class="numeral" aria-hidden="true">03</span>
 
 		<p class="eyebrow">The dashboard</p>
-		<h2>A real product, not a protocol demo</h2>
+		<h2>Artist controls</h2>
 		<p class="lede intro">
 			Everything below ships today and runs on your own server, behind your own login.
 		</p>
 
-		<dl class="rows">
-			{
-				rows.map((row) => (
-					<div class="row">
-						<dt>{row.name}</dt>
-						<dd>{row.body}</dd>
-					</div>
-				))
-			}
-		</dl>
+		<div class="swap">
+			<div class="tabs" role="tablist" aria-label="Artist dashboard features" aria-orientation="vertical">
+				{
+					rows.map((row, i) => (
+						<button
+							type="button"
+							role="tab"
+							class="row"
+							id={`tab-${row.id}`}
+							aria-controls={`panel-${row.id}`}
+							aria-selected={i === 0 ? 'true' : 'false'}
+							tabindex={i === 0 ? 0 : -1}
+						>
+							<span class="name">{row.name}</span>
+							<span class="body">{row.body}</span>
+						</button>
+					))
+				}
+			</div>
+
+			<div class="panels">
+				{
+					rows.map((row, i) => (
+						<figure
+							class="shot"
+							role="tabpanel"
+							id={`panel-${row.id}`}
+							aria-labelledby={`tab-${row.id}`}
+							data-active={i === 0 ? 'true' : undefined}
+						>
+							<Image
+								src={row.shot}
+								alt={`The ${row.name} page of the Station artist dashboard.`}
+								widths={[480, 640, 900, 1280]}
+								sizes="(max-width: 62rem) 100vw, 640px"
+								loading={i === 0 ? 'eager' : 'lazy'}
+								decoding="async"
+							/>
+							<figcaption>artist dashboard — {row.name.toLowerCase()}</figcaption>
+						</figure>
+					))
+				}
+			</div>
+		</div>
 	</div>
 </section>
 
@@ -56,48 +109,231 @@ const rows = [
 		margin-top: 1.25rem;
 	}
 
-	.rows {
+	.swap {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+		gap: clamp(1.5rem, 4vw, 3.5rem);
+		align-items: start;
 		margin-top: clamp(2.5rem, 5vw, 3.5rem);
 	}
 
+	/* ---- the row list, doubling as the control ---------------------- */
+
 	.row {
-		display: grid;
-		grid-template-columns: minmax(8rem, 14rem) 1fr;
-		gap: clamp(1rem, 4vw, 3rem);
-		padding: 1.35rem 0;
+		display: block;
+		width: 100%;
+		text-align: left;
+		background: none;
+		border: 0;
 		border-top: 1px solid var(--rule);
-		align-items: baseline;
-		transition: background 0.15s ease;
+		border-left: 2px solid transparent;
+		padding: 1.15rem 0 1.15rem 1rem;
+		margin-left: -1rem;
+		cursor: pointer;
+		font-family: inherit;
+		transition: border-color 0.15s ease, background 0.15s ease;
 	}
 
 	.row:last-child {
 		border-bottom: 1px solid var(--rule);
 	}
 
-	.row:hover {
-		background: rgba(173, 235, 179, 0.035);
-	}
-
-	dt {
+	.name {
+		display: block;
 		font-family: var(--display);
 		font-size: clamp(1.1rem, 2.2vw, 1.5rem);
 		text-transform: uppercase;
 		letter-spacing: -0.02em;
 		line-height: 1;
+		color: var(--gray);
+		transition: color 0.15s ease;
+	}
+
+	.body {
+		display: block;
+		margin-top: 0.6rem;
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.62);
+		transition: color 0.15s ease;
+	}
+
+	.row:hover .name,
+	.row:focus-visible .name {
+		color: var(--white);
+	}
+
+	.row[aria-selected='true'] {
+		border-left-color: var(--mint);
+		background: rgba(173, 235, 179, 0.04);
+	}
+
+	.row[aria-selected='true'] .name {
 		color: var(--mint);
 	}
 
-	dd {
-		font-size: 0.85rem;
-		line-height: 1.7;
-		color: rgba(255, 255, 255, 0.78);
-		max-width: var(--measure);
+	.row[aria-selected='true'] .body {
+		color: rgba(255, 255, 255, 0.82);
 	}
 
-	@media (max-width: 40rem) {
-		.row {
+	/* ---- the screenshot plate --------------------------------------- */
+
+	.panels {
+		position: sticky;
+		top: clamp(4.5rem, 9vh, 6rem);
+		display: grid;
+	}
+
+	/* Every plate shares one grid cell so they can swap in place. All six
+	   screenshots are the same aspect, so the cell height never shifts. */
+	.shot {
+		grid-area: 1 / 1;
+		border: 1px solid var(--rule);
+		background: var(--black);
+
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(6px);
+		/* Linear, not eased — a plate being swapped, not a slide dissolving.
+		   Visibility waits out the fade on exit so it doesn't cut early. */
+		transition:
+			opacity 130ms linear,
+			transform 130ms ease-out,
+			visibility 0s linear 130ms;
+	}
+
+	.shot[data-active] {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+		transition:
+			opacity 130ms linear,
+			transform 130ms ease-out,
+			visibility 0s linear 0s;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.shot,
+		.shot[data-active] {
+			transform: none;
+			transition: none;
+		}
+	}
+
+	/* :global because <Image> renders the <img> outside this component's scope. */
+	.shot :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.shot figcaption {
+		font-size: 0.65rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		padding: 0.7rem 0.9rem;
+		border-top: 1px solid var(--rule);
+	}
+
+	@media (max-width: 62rem) {
+		.swap {
 			grid-template-columns: 1fr;
-			gap: 0.5rem;
+		}
+
+		/* Show the screenshot before the wall of copy on narrow screens. */
+		.panels {
+			order: -1;
+			position: static;
 		}
 	}
 </style>
+
+<script>
+	document.querySelectorAll<HTMLElement>('[role="tablist"]').forEach((list) => {
+		const tabs = Array.from(list.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+		if (!tabs.length) return;
+
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		// Scroll-sync only applies to the two-column sticky layout. Below this
+		// the image sits above the rows, so driving it by scroll would swap a
+		// picture that's already off screen.
+		const wide = window.matchMedia('(min-width: 62.0625rem)');
+
+		let current = Math.max(
+			0,
+			tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true')
+		);
+
+		function select(index: number, focus = false) {
+			if (index !== current) {
+				current = index;
+				tabs.forEach((tab, i) => {
+					const active = i === index;
+					tab.setAttribute('aria-selected', active ? 'true' : 'false');
+					tab.tabIndex = active ? 0 : -1;
+
+					const panel = document.getElementById(tab.getAttribute('aria-controls')!);
+					if (panel) panel.toggleAttribute('data-active', active);
+				});
+			}
+			if (focus) tabs[index].focus();
+		}
+
+		tabs.forEach((tab, i) => {
+			tab.addEventListener('click', () => {
+				select(i);
+				// Bring the row to the band so scroll-sync agrees with the click
+				// rather than immediately overriding it on the next scroll.
+				if (wide.matches) {
+					tab.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+				}
+			});
+		});
+
+		// A zero-height line across the viewport's middle. A row crossing it
+		// becomes active; this only ever sets a selection, never clears one, so
+		// gaps between rows leave the last choice standing.
+		let observer: IntersectionObserver | null = null;
+
+		function enableScrollSync() {
+			if (observer) return;
+			observer = new IntersectionObserver(
+				(entries) => {
+					for (const entry of entries) {
+						if (entry.isIntersecting) {
+							select(tabs.indexOf(entry.target as HTMLButtonElement));
+						}
+					}
+				},
+				{ rootMargin: '-50% 0px -50% 0px', threshold: 0 }
+			);
+			tabs.forEach((tab) => observer!.observe(tab));
+		}
+
+		function disableScrollSync() {
+			observer?.disconnect();
+			observer = null;
+		}
+
+		const applyMode = () => (wide.matches ? enableScrollSync() : disableScrollSync());
+		applyMode();
+		wide.addEventListener('change', applyMode);
+
+		// Roving tabindex: arrows move between tabs, home/end jump to the ends.
+		list.addEventListener('keydown', (e) => {
+			const current = tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true');
+			let next = -1;
+
+			if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+			else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+			else if (e.key === 'Home') next = 0;
+			else if (e.key === 'End') next = tabs.length - 1;
+
+			if (next !== -1) {
+				e.preventDefault();
+				select(next, true);
+			}
+		});
+	});
+</script>

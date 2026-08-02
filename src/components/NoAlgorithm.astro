@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+import listenerApp from '../assets/listener-app.png';
 ---
 
 <section class="section" id="discovery">
@@ -9,6 +11,18 @@
 			<div class="lead">
 				<p class="eyebrow">Discovery</p>
 				<h2>Bye-bye algorithms</h2>
+
+				<figure class="shot">
+					<Image
+						src={listenerApp}
+						alt="The qnch listener app: a dark interface with Search, Library and Wallet in the header, the Station wordmark, and a card reading Artist Operated."
+						widths={[400, 600, 900, 1200]}
+						sizes="(max-width: 40rem) 100vw, (max-width: 78rem) 50vw, 592px"
+						loading="lazy"
+						decoding="async"
+					/>
+					<figcaption>the listener app — no browse page, no charts</figcaption>
+				</figure>
 			</div>
 
 			<div class="text">
@@ -79,5 +93,28 @@
 		font-family: var(--mono);
 		font-size: clamp(0.72rem, 0.66rem + 0.3vw, 0.88rem);
 		word-break: break-all;
+	}
+
+	/* Screenshot plate: hairline frame, mono caption set like a zine credit. */
+	.shot {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border: 1px solid var(--rule);
+		background: var(--black);
+	}
+
+	/* :global because <Image> renders the <img> outside this component's scope. */
+	.shot :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.shot figcaption {
+		font-size: 0.65rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		padding: 0.75rem 0.9rem;
+		border-top: 1px solid var(--rule);
 	}
 </style>

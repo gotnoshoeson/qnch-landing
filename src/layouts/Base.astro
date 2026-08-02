@@ -8,6 +8,12 @@ const {
 	title = 'qnch — run your own streaming service',
 	description = 'Station is a music server you host yourself. One command, about ten minutes, roughly $4 a month. Fans stream directly off your machine. You keep 100% of what you earn.',
 } = Astro.props;
+
+// Link-preview scrapers need absolute URLs — relative paths are silently
+// dropped by most of them. qnch.network redirects to www, so www is canonical.
+const SITE = 'https://www.qnch.network';
+const canonical = new URL(Astro.url.pathname, SITE).href;
+const ogImage = new URL('/og.png', SITE).href;
 ---
 
 <!doctype html>
@@ -21,12 +27,26 @@ const {
 		<title>{title}</title>
 		<meta name="description" content={description} />
 
+		<link rel="canonical" href={canonical} />
+
 		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="qnch" />
+		<meta property="og:url" content={canonical} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta
+			property="og:image:alt"
+			content="Run your own streaming service — the qnch landing page, with the Station install command"
+		/>
+
 		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="twitter:title" content={title} />
 		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
