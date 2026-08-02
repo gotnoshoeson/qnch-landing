@@ -1,0 +1,139 @@
+---
+---
+
+<section class="section" id="fansociety">
+	<div class="wrap">
+		<span class="numeral" aria-hidden="true">05</span>
+
+		<p class="eyebrow">FanSociety</p>
+		<h2>Musician patronage, no subscriptions</h2>
+
+		<div class="intro">
+			<p class="lede">
+				Fan clubs have been tried as rarity drops — ten thousand slots, first come, whoever has the
+				most money. That sorts your supporters by wallet size and tells you nothing about them.
+			</p>
+			<p>
+				FanSociety uses <strong>generations</strong> instead. You mint a generation and set what it
+				costs. Fans mint into it for as long as it's open. When you close it and start the next one,
+				that cohort is sealed — permanently, publicly, on-chain. Generation 1 stays Generation 1 for
+				the length of your career.
+			</p>
+		</div>
+
+		<div class="split">
+			<article class="side">
+				<div class="side-head">
+					<h3>For you</h3>
+					<span class="tag">artist</span>
+				</div>
+				<ul>
+					<li>A record of who showed up and when, that grows with your career instead of selling out in a weekend.</li>
+					<li>Grant early releases, bonus tracks, or free streaming to any generation you choose — per album, or per track.</li>
+					<li>Membership revenue lands in your contract. See every supporter, every amount, every transaction.</li>
+					<li>No cap, no tiers you have to invent up front, no scarcity theatre.</li>
+				</ul>
+			</article>
+
+			<article class="side">
+				<div class="side-head">
+					<h3>For them</h3>
+					<span class="tag">fan</span>
+				</div>
+				<ul>
+					<li>Proof they were early that nobody can revoke, backfill, or quietly reprice.</li>
+					<li>Access that the proof actually opens — held per generation, not as a blanket pass.</li>
+					<li>Money that goes to the artist, in seconds, with the path visible on a block explorer.</li>
+					<li>Something to point at when the band gets big. Which is the whole reason people care.</li>
+				</ul>
+			</article>
+		</div>
+
+		<p class="margin-note">
+			The social contract between a fan and an artist already exists. FanSociety just writes it
+			down somewhere neither party can edit later.
+		</p>
+	</div>
+</section>
+
+<style>
+	.intro {
+		margin: clamp(1.5rem, 3vw, 2.25rem) 0 clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.intro p + p {
+		margin-top: 1.1rem;
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.intro strong {
+		color: var(--mint);
+		font-weight: 500;
+	}
+
+	.split {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+		gap: 1px;
+		background: var(--rule);
+		border: 1px solid var(--rule);
+		margin-bottom: 2rem;
+	}
+
+	.side {
+		background: var(--black);
+		padding: clamp(1.5rem, 3vw, 2.25rem);
+	}
+
+	.side-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding-bottom: 1.1rem;
+		margin-bottom: 1.4rem;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	h3 {
+		color: var(--mint);
+	}
+
+	.tag {
+		font-size: 0.6rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		border: 1px solid var(--rule);
+		padding: 0.25rem 0.5rem;
+		transform: rotate(1deg);
+	}
+
+	ul {
+		list-style: none;
+	}
+
+	li {
+		position: relative;
+		padding-left: 1.4rem;
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+	}
+
+	li + li {
+		margin-top: 0.9rem;
+	}
+
+	li::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0.62em;
+		width: 0.6rem;
+		height: 1px;
+		background: var(--mint);
+	}
+</style>

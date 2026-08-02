@@ -1,0 +1,116 @@
+---
+---
+
+<footer class="footer">
+	<div class="wrap">
+		<div class="top">
+			<p class="statement">
+				qnch is a network for musicians and technologists exploring novel ideas in digital music
+				distribution, payment archetypes, and knitting new social fabrics.
+			</p>
+
+			<nav class="links" aria-label="Footer">
+				<a href="https://docs.qnch.network" target="_blank" rel="noopener noreferrer">docs</a>
+				<a href="https://beta.qnch.network" target="_blank" rel="noopener noreferrer">listener app</a>
+				<a href="https://www.fansociety.xyz/" target="_blank" rel="noopener noreferrer">fansociety</a>
+				<a href="https://t.me/+EwzB7vuSRZozYTEx" target="_blank" rel="noopener noreferrer">telegram</a>
+			</nav>
+		</div>
+
+		<div class="bottom">
+			<a
+				href="https://polkadot.com"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="powered-by"
+			>
+				<span>Settlement on</span>
+				<img src="/polkadot-logo.svg" alt="Polkadot" class="polkadot-logo" />
+			</a>
+			<span class="net">testnet — paseo asset hub</span>
+		</div>
+	</div>
+</footer>
+
+<style>
+	.footer {
+		border-top: 1px solid var(--rule);
+		padding: clamp(2.5rem, 5vw, 4rem) var(--gutter) clamp(2rem, 4vw, 3rem);
+	}
+
+	.top {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: clamp(2rem, 5vw, 4rem);
+		flex-wrap: wrap;
+		padding-bottom: clamp(2rem, 4vw, 3rem);
+	}
+
+	.statement {
+		font-size: 0.8rem;
+		line-height: 1.7;
+		color: var(--gray);
+		max-width: 46ch;
+	}
+
+	.links {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		align-items: flex-start;
+	}
+
+	.links a {
+		font-size: 0.72rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		text-decoration: none;
+		color: var(--gray);
+		transition: color 0.15s ease;
+	}
+
+	.links a:hover,
+	.links a:focus-visible {
+		color: var(--mint);
+	}
+
+	.bottom {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--rule);
+	}
+
+	.powered-by {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		text-decoration: none;
+		color: var(--gray-dim);
+		font-size: 0.7rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		opacity: 0.75;
+		transition: opacity 0.15s ease;
+	}
+
+	.powered-by:hover {
+		opacity: 1;
+	}
+
+	.polkadot-logo {
+		height: 16px;
+		width: auto;
+	}
+
+	.net {
+		font-size: 0.65rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+</style>

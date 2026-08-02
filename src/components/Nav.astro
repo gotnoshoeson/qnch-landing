@@ -1,0 +1,74 @@
+---
+---
+
+<header class="nav">
+	<a href="/" class="mark" aria-label="qnch home">qnch</a>
+	<nav>
+		<a href="https://docs.qnch.network" target="_blank" rel="noopener noreferrer">docs</a>
+		<a href="https://beta.qnch.network" target="_blank" rel="noopener noreferrer">listen</a>
+		<a href="https://t.me/+EwzB7vuSRZozYTEx" target="_blank" rel="noopener noreferrer">telegram</a>
+		<a href="#start" class="cta">get started</a>
+	</nav>
+</header>
+
+<style>
+	.nav {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.85rem var(--gutter);
+		background: rgba(0, 0, 0, 0.82);
+		backdrop-filter: blur(10px);
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.mark {
+		font-family: var(--display);
+		font-size: 1.15rem;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		text-decoration: none;
+	}
+
+	nav {
+		display: flex;
+		align-items: center;
+		gap: clamp(0.9rem, 2.5vw, 1.75rem);
+	}
+
+	nav a {
+		font-size: 0.72rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		text-decoration: none;
+		color: var(--gray);
+		transition: color 0.15s ease;
+	}
+
+	nav a:hover,
+	nav a:focus-visible {
+		color: var(--white);
+	}
+
+	.cta {
+		color: var(--mint) !important;
+		border: 1px solid var(--mint-rule);
+		padding: 0.4rem 0.7rem;
+	}
+
+	.cta:hover,
+	.cta:focus-visible {
+		background: var(--mint);
+		color: var(--black) !important;
+	}
+
+	@media (max-width: 40rem) {
+		nav a:nth-child(3) {
+			display: none;
+		}
+	}
+</style>

@@ -1,0 +1,103 @@
+---
+const rows = [
+	
+	{
+		name: 'New Release',
+		body: 'Add album artwork and data. Upload lossless audio at any quality you want. Keep in mind, higher quality = larger file size = more compute = higher cost server.',
+	},
+	{
+		name: 'Catalog',
+		body: 'Stage and publish releases. Schedule album release dates and override individual track releases to tease the release. Schedule an early release date for fans.',
+	},
+	{
+		name: 'Storefront',
+		body: 'Set pricing for tracks and albums. Price in the native token or a stablecoin. Rent an album for a set window — stream-only, then it closes on its own.',
+	},
+	{
+		name: 'Fan Club',
+		body: 'Use the FanSociety protocol from your dashboard. This is meant to grow with your career and help manage your fanbase; treat it with care.',
+	},
+	{
+		name: 'Treasury',
+		body: 'Advanced account setup to manage your earnings. Native multisig ownership is on the way; artists can use third party services now.',
+	},
+	{
+		name: 'Settings',
+		body: "Namespace, peer ID, DHT status, routing table size, RPC endpoints, update policy, device limits. Lots of options, the power is in your hands, not a platform's.",
+	},
+];
+---
+
+<section class="section" id="dashboard">
+	<div class="wrap">
+		<span class="numeral" aria-hidden="true">03</span>
+
+		<p class="eyebrow">The dashboard</p>
+		<h2>A real product, not a protocol demo</h2>
+		<p class="lede intro">
+			Everything below ships today and runs on your own server, behind your own login.
+		</p>
+
+		<dl class="rows">
+			{
+				rows.map((row) => (
+					<div class="row">
+						<dt>{row.name}</dt>
+						<dd>{row.body}</dd>
+					</div>
+				))
+			}
+		</dl>
+	</div>
+</section>
+
+<style>
+	.intro {
+		margin-top: 1.25rem;
+	}
+
+	.rows {
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.row {
+		display: grid;
+		grid-template-columns: minmax(8rem, 14rem) 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: 1.35rem 0;
+		border-top: 1px solid var(--rule);
+		align-items: baseline;
+		transition: background 0.15s ease;
+	}
+
+	.row:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.row:hover {
+		background: rgba(173, 235, 179, 0.035);
+	}
+
+	dt {
+		font-family: var(--display);
+		font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+		text-transform: uppercase;
+		letter-spacing: -0.02em;
+		line-height: 1;
+		color: var(--mint);
+	}
+
+	dd {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+		max-width: var(--measure);
+	}
+
+	@media (max-width: 40rem) {
+		.row {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+		}
+	}
+</style>

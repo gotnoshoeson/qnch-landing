@@ -1,0 +1,168 @@
+---
+---
+
+<section class="section invert noise" id="money">
+	<div class="wrap">
+		<span class="numeral" aria-hidden="true">04</span>
+
+		<div class="head">
+			<div>
+				<p class="eyebrow">Revenue split</p>
+				<h2>Sovereign payments, minimally extractive</h2>
+			</div>
+			<span class="split" aria-label="zero percent to Station, one hundred percent to you">
+				<em>0%</em>
+				<span class="bar" aria-hidden="true"></span>
+				<em>100%</em>
+				<span class="split-key">station | you</span>
+			</span>
+		</div>
+
+		<div class="body">
+			<div class="col">
+				<p class="lede">
+					Station is launching with zero rev share. You keep all of your income. Only smart contract based finance models can provide this guarantee.
+				</p>
+				<p>
+					All payments are routed through smart contracts that
+					<strong>you</strong> deploy and <strong>you</strong> own.
+					The payment split logic is baked into your contracts and can't be modified by anyone, ever.
+					There's no invoice, no billing cycle, and no moment where we hold your money and pass some of it back.
+				</p>
+				<p>
+					Station can offer a different rate to new contracts. It cannot reach into one you have
+					already deployed. Whatever your split was on the day you deployed is the split it keeps,
+					permanently.
+				</p>
+			</div>
+
+			<div class="col">
+				<blockquote>
+					The protection isn't that we promise not to raise your rate. It's that we can't.
+				</blockquote>
+
+				<p class="aside">
+					A streaming platform sets its terms in an agreement and reserves the right to revise it.
+					There's no recourse because there's nothing to enforce — the terms live on their side of
+					the relationship, and so does the ability to rewrite them.
+				</p>
+				<p class="aside">
+					The first increase, whenever it arrives, will be 1% | 99%, and it will apply only to
+					contracts deployed after it. There is no rev share increase schedule; we're gonna play it by ear.
+				</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	/* Hard-cut inversion — the one section that looks nothing like the rest. */
+	.invert {
+		background: var(--white);
+		color: var(--black);
+		border-top: 1px solid var(--black);
+	}
+
+	.invert .numeral {
+		-webkit-text-stroke: 1px rgba(0, 0, 0, 0.22);
+	}
+
+	.invert .eyebrow {
+		color: #1c7f3e;
+	}
+
+	.head {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 2rem;
+		flex-wrap: wrap;
+		padding-bottom: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-bottom: 2px solid var(--black);
+	}
+
+	.split {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		position: relative;
+		padding-bottom: 1.4rem;
+		transform: rotate(-1deg);
+	}
+
+	.split em {
+		font-family: var(--display);
+		font-style: normal;
+		font-size: clamp(2.25rem, 6vw, 4rem);
+		line-height: 0.85;
+		letter-spacing: -0.04em;
+	}
+
+	.split em:last-of-type {
+		color: #158a3f;
+	}
+
+	.bar {
+		width: 1px;
+		height: clamp(2rem, 5vw, 3.25rem);
+		background: var(--black);
+	}
+
+	.split-key {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		font-size: 0.62rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: rgba(0, 0, 0, 0.55);
+	}
+
+	.body {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		padding-top: clamp(2rem, 4vw, 3rem);
+	}
+
+	.col p + p {
+		margin-top: 1.1rem;
+	}
+
+	.body p {
+		color: rgba(0, 0, 0, 0.82);
+		font-size: 0.85rem;
+		line-height: 1.75;
+	}
+
+	.body .lede {
+		font-size: clamp(1rem, 0.94rem + 0.32vw, 1.2rem);
+		line-height: 1.55;
+		color: var(--black);
+	}
+
+	.body strong {
+		font-weight: 700;
+		color: var(--black);
+	}
+
+	blockquote {
+		font-family: var(--display);
+		font-size: clamp(1.4rem, 3.4vw, 2.4rem);
+		line-height: 1.02;
+		letter-spacing: -0.025em;
+		text-transform: uppercase;
+		border-left: 4px solid #158a3f;
+		padding-left: clamp(0.9rem, 2vw, 1.4rem);
+		margin-bottom: 1.75rem;
+		max-width: 22ch;
+	}
+
+	.aside {
+		max-width: 46ch;
+	}
+
+	.aside + .aside {
+		margin-top: 1.1rem;
+	}
+</style>

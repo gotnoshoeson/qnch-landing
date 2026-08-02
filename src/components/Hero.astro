@@ -1,0 +1,413 @@
+---
+import InstallCommand from './InstallCommand.astro';
+---
+
+<section class="hero noise">
+	<canvas id="particleCanvas" aria-hidden="true"></canvas>
+
+	<div class="hero-inner">
+		<p class="kicker">
+			<span class="stamp">testnet live</span>
+			<span class="kicker-text">mainnet hasn't launched yet</span>
+		</p>
+
+		<h1>
+			Run your own<br />
+			<span class="hl">streaming service</span>
+		</h1>
+
+		<p class="lede hero-lede">
+			Station is a music streaming network for the DIY minded. Fans stream <strong>directly off your machine</strong>. Payments are minimally extractive.
+		</p>
+
+		<InstallCommand id="hero-command" />
+
+		<p class="fineprint">
+			Preview and tinker for free. Everything works exactly as it
+			will at launch, on a network built for practice. <a
+				href="https://docs.qnch.network"
+				target="_blank"
+				rel="noopener noreferrer">Read the docs →</a
+			>
+		</p>
+	</div>
+
+	<div class="scroll-hint" aria-hidden="true">
+		<span>01</span>
+		<span class="tick"></span>
+	</div>
+</section>
+
+<style>
+	.hero {
+		position: relative;
+		min-height: calc(100svh - 3.5rem);
+		display: flex;
+		align-items: center;
+		padding: clamp(3.5rem, 9vw, 7rem) var(--gutter) clamp(5rem, 10vw, 8rem);
+		overflow: hidden;
+	}
+
+	#particleCanvas {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 0;
+	}
+
+	.hero-inner {
+		position: relative;
+		z-index: 2;
+		max-width: 78rem;
+		margin: 0 auto;
+		width: 100%;
+	}
+
+	.kicker {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		flex-wrap: wrap;
+		margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+		max-width: none;
+	}
+
+	.kicker-text {
+		font-size: 0.7rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--gray);
+	}
+
+	h1 {
+		font-family: var(--display);
+		font-weight: 400;
+		text-transform: uppercase;
+		letter-spacing: -0.045em;
+		line-height: 0.86;
+		font-size: clamp(3rem, 12vw, 9.5rem);
+		margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+	}
+
+	/* Second line kicks off the left axis — the old page never left center. */
+	.hl {
+		display: inline-block;
+		margin-left: clamp(0rem, 4vw, 5rem);
+		color: var(--mint);
+	}
+
+	.hero-lede {
+		max-width: 46ch;
+		margin-bottom: clamp(2rem, 4vw, 2.75rem);
+	}
+
+	.hero-lede strong {
+		font-weight: 700;
+		color: var(--white);
+	}
+
+	.fineprint {
+		margin-top: 1.25rem;
+		font-size: 0.75rem;
+		line-height: 1.7;
+		color: var(--gray);
+		max-width: 52ch;
+	}
+
+	.fineprint a {
+		color: var(--mint);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.fineprint a:hover {
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+	}
+
+	.scroll-hint {
+		position: absolute;
+		bottom: clamp(1.5rem, 3vw, 2.5rem);
+		right: var(--gutter);
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		font-size: 0.66rem;
+		letter-spacing: 0.2em;
+		color: var(--gray-dim);
+	}
+
+	.tick {
+		display: block;
+		width: clamp(2rem, 6vw, 4rem);
+		height: 1px;
+		background: var(--rule-strong);
+	}
+
+	@media (max-width: 40rem) {
+		.scroll-hint {
+			display: none;
+		}
+	}
+</style>
+
+<script>
+	const canvas = document.getElementById('particleCanvas') as HTMLCanvasElement | null;
+	const hero = canvas?.parentElement as HTMLElement | undefined;
+
+	if (canvas && hero) {
+		const ctx = canvas.getContext('2d')!;
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+		interface Particle {
+			x: number;
+			y: number;
+			baseX: number;
+			baseY: number;
+			vx: number;
+			vy: number;
+			size: number;
+		}
+
+		const particles: Particle[] = [];
+		// Drawing is split by colour so fillStyle is assigned twice per frame
+		// rather than once per particle — canvas state changes cost far more
+		// than the fillRect that follows them.
+		const plain: Particle[] = [];
+		const tinted: Particle[] = [];
+
+		const mouse = { x: -9999, y: -9999, active: false };
+		const mouseRadius = 90;
+		const mouseRadiusSq = mouseRadius * mouseRadius;
+		const returnSpeed = 0.08;
+		const repelForce = 2.4;
+		// Below this, movement is sub-pixel and the frame is visually identical.
+		const SETTLED = 0.05;
+
+		let width = 0;
+		let height = 0;
+		let dpr = 1;
+
+		let rafId: number | null = null;
+		let visible = true;
+		let awake = true;
+
+		function resize() {
+			const rect = hero!.getBoundingClientRect();
+			width = Math.max(1, Math.round(rect.width));
+			height = Math.max(1, Math.round(rect.height));
+			dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+			canvas!.width = width * dpr;
+			canvas!.height = height * dpr;
+			canvas!.style.width = `${width}px`;
+			canvas!.style.height = `${height}px`;
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		}
+
+		// Sample the QNCH wordmark into a particle field. Roughly one in seven
+		// particles is offset and tinted mint — a riso misregistration, not a glow.
+		function createParticles() {
+			particles.length = 0;
+			plain.length = 0;
+			tinted.length = 0;
+
+			const temp = document.createElement('canvas');
+			temp.width = width;
+			temp.height = height;
+			const tempCtx = temp.getContext('2d', { willReadFrequently: true })!;
+
+			const fontSize = Math.min(width * 0.34, height * 0.72, 900);
+			tempCtx.fillStyle = '#fff';
+			tempCtx.font = `400 ${fontSize}px Anton, 'Arial Narrow', sans-serif`;
+			tempCtx.textAlign = 'center';
+			tempCtx.textBaseline = 'middle';
+			tempCtx.fillText('QNCH', width / 2, height / 2);
+
+			const data = tempCtx.getImageData(0, 0, width, height).data;
+			const gap = width < 640 ? 5 : 4;
+
+			for (let y = 0; y < height; y += gap) {
+				for (let x = 0; x < width; x += gap) {
+					if (data[(y * width + x) * 4 + 3] > 128) {
+						const tint = Math.random() < 0.14;
+						const particle: Particle = {
+							x,
+							y,
+							baseX: tint ? x + 3 : x,
+							baseY: tint ? y - 2 : y,
+							vx: 0,
+							vy: 0,
+							size: Math.random() * 1.8 + 1,
+						};
+						particles.push(particle);
+						(tint ? tinted : plain).push(particle);
+					}
+				}
+			}
+		}
+
+		// Advance the simulation. Returns whether anything is still in motion.
+		function step() {
+			let moving = false;
+
+			for (const p of particles) {
+				if (mouse.active) {
+					const dx = mouse.x - p.x;
+					const dy = mouse.y - p.y;
+					const distSq = dx * dx + dy * dy;
+
+					// Compare squared distances; only pay for sqrt inside the radius.
+					if (distSq < mouseRadiusSq) {
+						const distance = Math.sqrt(distSq);
+						const angle = Math.atan2(dy, dx);
+						const force = (mouseRadius - distance) / mouseRadius;
+						p.vx -= Math.cos(angle) * force * repelForce;
+						p.vy -= Math.sin(angle) * force * repelForce;
+					}
+				}
+
+				p.vx += (p.baseX - p.x) * returnSpeed;
+				p.vy += (p.baseY - p.y) * returnSpeed;
+				p.vx *= 0.86;
+				p.vy *= 0.86;
+				p.x += p.vx;
+				p.y += p.vy;
+
+				if (
+					!moving &&
+					(Math.abs(p.vx) > SETTLED ||
+						Math.abs(p.vy) > SETTLED ||
+						Math.abs(p.x - p.baseX) > SETTLED ||
+						Math.abs(p.y - p.baseY) > SETTLED)
+				) {
+					moving = true;
+				}
+			}
+
+			return moving;
+		}
+
+		function snapToBase() {
+			for (const p of particles) {
+				p.x = p.baseX;
+				p.y = p.baseY;
+				p.vx = 0;
+				p.vy = 0;
+			}
+		}
+
+		function paint() {
+			ctx.clearRect(0, 0, width, height);
+
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+			for (const p of plain) {
+				ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+			}
+
+			ctx.fillStyle = 'rgba(173, 235, 179, 0.34)';
+			for (const p of tinted) {
+				ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+			}
+		}
+
+		function frame() {
+			const moving = step();
+			paint();
+
+			// Nothing is moving and no pointer is driving it — stop scheduling
+			// frames entirely until something wakes us.
+			if (!moving && !mouse.active) {
+				snapToBase();
+				paint();
+				awake = false;
+				rafId = null;
+				return;
+			}
+
+			rafId = requestAnimationFrame(frame);
+		}
+
+		function run() {
+			if (reduceMotion || rafId !== null || !visible || !awake) return;
+			rafId = requestAnimationFrame(frame);
+		}
+
+		function stop() {
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+				rafId = null;
+			}
+		}
+
+		function wake() {
+			if (reduceMotion) return;
+			awake = true;
+			run();
+		}
+
+		function rebuild() {
+			resize();
+			createParticles();
+			snapToBase();
+			paint();
+		}
+
+		hero.addEventListener('pointermove', (e) => {
+			if (reduceMotion) return;
+			const rect = hero.getBoundingClientRect();
+			mouse.x = e.clientX - rect.left;
+			mouse.y = e.clientY - rect.top;
+			mouse.active = true;
+			wake();
+		});
+
+		hero.addEventListener('pointerleave', () => {
+			mouse.active = false;
+			mouse.x = -9999;
+			mouse.y = -9999;
+			// Keep running so particles travel home, then the loop sleeps itself.
+			wake();
+		});
+
+		let resizeTimer: number;
+		window.addEventListener('resize', () => {
+			window.clearTimeout(resizeTimer);
+			resizeTimer = window.setTimeout(() => {
+				rebuild();
+				wake();
+			}, 150);
+		});
+
+		// Anton drives the particle shape, so wait for it before sampling.
+		const start = () => {
+			rebuild();
+
+			if (reduceMotion) return;
+
+			// The hero is only on screen for the first viewport of a long page.
+			// Past that, stop the loop rather than simulating what nobody sees.
+			const observer = new IntersectionObserver(
+				(entries) => {
+					visible = entries[0].isIntersecting;
+					if (visible) {
+						wake();
+					} else {
+						stop();
+					}
+				},
+				{ rootMargin: '100px' }
+			);
+
+			observer.observe(hero);
+		};
+
+		if (document.fonts?.ready) {
+			document.fonts.ready.then(start);
+		} else {
+			start();
+		}
+	}
+</script>

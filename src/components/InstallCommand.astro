@@ -1,0 +1,131 @@
+---
+interface Props {
+	id: string;
+}
+
+const { id } = Astro.props;
+const command =
+	'curl -sSL https://qnch.network/install.sh -o install.sh && sudo bash install.sh --network testnet';
+---
+
+<div class="cmd">
+	<div class="cmd-bar">
+		<span class="cmd-label">one command</span>
+		<span class="cmd-dots" aria-hidden="true">▪ ▪ ▪</span>
+	</div>
+	<div class="cmd-body">
+		<code id={id}><span class="prompt" aria-hidden="true">$</span>{command}</code>
+		<button
+			type="button"
+			class="copy"
+			data-copy-target={id}
+			aria-label="Copy install command to clipboard">copy</button
+		>
+	</div>
+</div>
+
+<style>
+	.cmd {
+		border: 1px solid var(--mint-rule);
+		background: rgba(173, 235, 179, 0.03);
+		max-width: 54rem;
+	}
+
+	.cmd-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.5rem 0.85rem;
+		border-bottom: 1px solid var(--mint-rule);
+		font-size: 0.66rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--mint);
+	}
+
+	.cmd-dots {
+		letter-spacing: 0.1em;
+		opacity: 0.5;
+	}
+
+	.cmd-body {
+		display: flex;
+		align-items: flex-start;
+		gap: 1rem;
+		padding: 1rem 0.85rem;
+	}
+
+	code {
+		font-family: var(--mono);
+		font-size: clamp(0.7rem, 0.6rem + 0.42vw, 0.9rem);
+		line-height: 1.7;
+		color: var(--white);
+		word-break: break-all;
+		flex: 1;
+	}
+
+	.prompt {
+		color: var(--mint);
+		margin-right: 0.6rem;
+		user-select: none;
+	}
+
+	.copy {
+		flex-shrink: 0;
+		font-family: var(--mono);
+		font-size: 0.66rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--black);
+		background: var(--mint);
+		border: 0;
+		padding: 0.45rem 0.8rem;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+
+	.copy:hover,
+	.copy:focus-visible {
+		background: var(--mint-deep);
+	}
+
+	.copy[data-copied='true'] {
+		background: var(--white);
+	}
+
+	@media (max-width: 32rem) {
+		.cmd-body {
+			flex-direction: column;
+		}
+
+		.copy {
+			align-self: flex-start;
+		}
+	}
+</style>
+
+<script>
+	document.querySelectorAll<HTMLButtonElement>('button[data-copy-target]').forEach((button) => {
+		button.addEventListener('click', async () => {
+			const target = document.getElementById(button.dataset.copyTarget!);
+			if (!target?.textContent) return;
+
+			// Strip the leading "$ " prompt, which is decoration rather than command.
+			const text = target.textContent.replace(/^\s*\$\s*/, '');
+
+			try {
+				await navigator.clipboard.writeText(text);
+			} catch {
+				return;
+			}
+
+			button.textContent = 'copied';
+			button.dataset.copied = 'true';
+			window.setTimeout(() => {
+				button.textContent = 'copy';
+				delete button.dataset.copied;
+			}, 2000);
+		});
+	});
+</script>
