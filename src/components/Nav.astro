@@ -1,8 +1,12 @@
 ---
+import { Image } from 'astro:assets';
+import logo from '../assets/logo-qnch.png';
 ---
 
 <header class="nav">
-	<a href="/" class="mark" aria-label="qnch home">qnch</a>
+	<a href="/" class="mark">
+		<Image src={logo} alt="qnch" widths={[60, 120, 180]} sizes="56px" loading="eager" />
+	</a>
 	<nav>
 		<a href="https://docs.qnch.network" target="_blank" rel="noopener noreferrer">docs</a>
 		<a href="https://beta.qnch.network" target="_blank" rel="noopener noreferrer">listen</a>
@@ -27,11 +31,22 @@
 	}
 
 	.mark {
-		font-family: var(--display);
-		font-size: 1.15rem;
-		letter-spacing: 0.02em;
-		text-transform: uppercase;
+		display: block;
 		text-decoration: none;
+		line-height: 0;
+	}
+
+	/* :global because <Image> renders the <img> outside this component's scope. */
+	.mark :global(img) {
+		display: block;
+		height: 21px;
+		width: auto;
+	}
+
+	@media (max-width: 40rem) {
+		.mark :global(img) {
+			height: 18px;
+		}
 	}
 
 	nav {
