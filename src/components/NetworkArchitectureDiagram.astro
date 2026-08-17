@@ -1,0 +1,228 @@
+---
+/**
+ * NetworkArchitectureDiagram — centralized platform vs DIY self-hosting vs Station on qnch.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * Three bands share four column positions (artists / servers / in between /
+ * the listener), so the differences are positional: the platform band has no
+ * server in the artist's column (it sits inside the platform's boundary), and
+ * only the platform band occupies the middle column. Faint solid boxes mark
+ * what the artist owns; the mint dashed box crossing them is qnch membership.
+ *
+ * Line convention: solid carries audio, dashed carries names. Both the
+ * platform band and the Station band answer a name lookup; what differs is who
+ * owns the thing that answers it.
+ */
+interface Props {
+  caption?: string;
+  columnLabels?: { x: number; label: string }[];
+  platform?: { title: string; subtitle: string; notes: string[] };
+  diy?: { title: string; subtitle: string; notes: string[] };
+  station?: { title: string; subtitle: string; notes: string[] };
+  networkLabel?: string;
+  searchLabel?: string;
+  databaseLabel?: string;
+  showColumnLabels?: boolean;
+  showNameResolution?: boolean;
+  class?: string;
+}
+
+const {
+  caption = 'network architecture — solid lines carry audio, dashed lines carry names, boxes mark what belongs to whom',
+  columnLabels = [
+    { x: 400, label: 'ARTISTS' },
+    { x: 515, label: 'SERVERS' },
+    { x: 760, label: 'IN BETWEEN' },
+    { x: 1120, label: 'THE LISTENER' },
+  ],
+  platform = {
+    title: 'CENTRALIZED PLATFORM',
+    subtitle: 'ONE COMPANY, ONE CATALOG',
+    notes: [
+      "ARTISTS DON'T RUN A SERVER. THE",
+      'PLATFORM DOES, AND IT TAKES A',
+      'LARGE CUT FOR RUNNING THE',
+      'INFRASTRUCTURE, INCLUDING THE',
+      'DATABASE THAT ROUTES EVERY REQUEST.',
+    ],
+  },
+  diy = {
+    title: 'DIY SELF-HOSTING',
+    subtitle: 'EVERY ARTIST A WEBSITE',
+    notes: [
+      'THE ARTIST RUNS THE SERVER AND',
+      'THE SITE. MORE CONTROL FOR THE',
+      'ARTIST, WORSE EXPERIENCE FOR',
+      'LISTENERS.',
+    ],
+  },
+  station = {
+    title: 'STATION ON QNCH',
+    subtitle: 'NOVEL HYBRID MODEL',
+    notes: [
+      'ARTIST RUNS SERVER. MAXIMUM',
+      'CONTROL FOR ARTISTS, MAINTAIN',
+      'CONVENIENT ACCESS FOR LISTENERS.',
+    ],
+  },
+  networkLabel = 'QNCH NETWORK — EVERY SERVER IS A PARTICIPANT',
+  searchLabel = 'SEARCH ARTIST',
+  databaseLabel = 'CONTENT DATABASE',
+  showColumnLabels = true,
+  showNameResolution = true,
+  class: className,
+} = Astro.props;
+
+// column geometry, shared by all three bands
+const ARTIST_X = 380, ARTIST_W = 40;
+const SERVER_X = 470, SERVER_W = 90;
+const RIGHT_X = 1070, RIGHT_W = 100;
+const NODE_H = 40;
+
+// band 1 rows 170/240/310, band 2 410/480/550, band 3 650/720/790
+const rows = (cy: number) => [cy - 70, cy, cy + 70];
+const bands = { platform: 240, diy: 480, station: 720 };
+const letters = ['A', 'B', 'C'];
+const box = (x: number, w: number, cy: number) => ({ x, y: cy - NODE_H / 2, width: w, height: NODE_H });
+const owns = (cy: number, w: number) => ({ x: 368, y: cy - 28, width: w, height: 56 });
+---
+
+<figure class:list={['na-plate', className]}>
+  <svg viewBox="0 0 1248 880" role="img" aria-label={caption}>
+    <defs>
+      <marker id="naArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#ffffff" />
+      </marker>
+      <marker id="naArrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#adebb3" />
+      </marker>
+    </defs>
+
+    {showColumnLabels && (
+      <g class="na-axis" text-anchor="middle">
+        {columnLabels.map((c) => <text x={c.x} y="100">{c.label}</text>)}
+      </g>
+    )}
+
+    <g stroke="#ffffff" stroke-opacity="0.16">
+      <line x1="350" y1="140" x2="350" y2="830" />
+      <line x1="0" y1="360" x2="1248" y2="360" />
+      <line x1="0" y1="600" x2="1248" y2="600" />
+    </g>
+
+    <!-- band 1: centralized platform — the server sits inside the platform's boundary -->
+    <text x="32" y="190" class="na-label">{platform.title}</text>
+    <text x="32" y="212" class="na-tick">{platform.subtitle}</text>
+    <g class="na-axis">
+      {platform.notes.map((n, i) => <text x="32" y={248 + i * 22}>{n}</text>)}
+    </g>
+
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      {rows(bands.platform).map((cy) => <rect {...box(ARTIST_X, ARTIST_W, cy)} />)}
+      <line x1="420" y1="170" x2="636" y2="205" marker-end="url(#naArrow)" />
+      <line x1="420" y1="240" x2="636" y2="240" marker-end="url(#naArrow)" />
+      <line x1="420" y1="310" x2="636" y2="275" marker-end="url(#naArrow)" />
+      <rect x="640" y="164" width="260" height="152" />
+      <rect x="700" y="200" width="140" height="44" />
+      <rect x="700" y="254" width="140" height="44" />
+      <line x1="770" y1="244" x2="770" y2="254" stroke-dasharray="2 6" />
+      <path d="M900 276 H1000 V252 H1066" marker-end="url(#naArrow)" />
+      <rect {...box(RIGHT_X, RIGHT_W, bands.platform)} />
+    </g>
+    <g class="na-label" text-anchor="middle">
+      {rows(bands.platform).map((cy, i) => <text x="400" y={cy + 5}>{letters[i]}</text>)}
+      <text x="770" y="227">{databaseLabel}</text>
+      <text x="770" y="281">SERVERS</text>
+      <text x="1120" y="245">APP</text>
+    </g>
+    <text x="652" y="186" class="na-label">PLATFORM</text>
+    <path d="M1070 228 H904" fill="none" stroke="#ffffff" stroke-opacity="0.62" stroke-dasharray="2 6" marker-end="url(#naArrow)" />
+    <text x="1060" y="196" class="na-axis" text-anchor="end">{searchLabel}</text>
+
+    <!-- band 2: DIY — artist runs the server, and every artist is a separate door -->
+    <text x="32" y="430" class="na-label">{diy.title}</text>
+    <text x="32" y="452" class="na-tick">{diy.subtitle}</text>
+    <g class="na-axis">
+      {diy.notes.map((n, i) => <text x="32" y={488 + i * 22}>{n}</text>)}
+    </g>
+
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.16">
+      {rows(bands.diy).map((cy) => <rect {...owns(cy, 204)} />)}
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      {rows(bands.diy).map((cy) => <rect {...box(ARTIST_X, ARTIST_W, cy)} />)}
+      {rows(bands.diy).map((cy) => <rect {...box(SERVER_X, SERVER_W, cy)} />)}
+      {rows(bands.diy).map((cy) => <rect {...box(RIGHT_X, RIGHT_W, cy)} />)}
+      {rows(bands.diy).map((cy) => <line x1="420" y1={cy} x2="466" y2={cy} marker-end="url(#naArrow)" />)}
+      {rows(bands.diy).map((cy) => <line x1="560" y1={cy} x2="1066" y2={cy} marker-end="url(#naArrow)" />)}
+    </g>
+    <g class="na-label" text-anchor="middle">
+      {rows(bands.diy).map((cy, i) => <text x="400" y={cy + 5}>{letters[i]}</text>)}
+      {rows(bands.diy).map((cy) => <text x="515" y={cy + 5}>SERVER</text>)}
+      {rows(bands.diy).map((cy, i) => <text x="1120" y={cy + 5}>SITE {letters[i]}</text>)}
+    </g>
+
+    <!-- band 3: Station — the server is the artist's AND part of qnch -->
+    <text x="32" y="670" class="na-label">{station.title}</text>
+    <text x="32" y="692" class="na-tick">{station.subtitle}</text>
+    <g class="na-axis">
+      {station.notes.map((n, i) => <text x="32" y={728 + i * 22}>{n}</text>)}
+    </g>
+
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.16">
+      {rows(bands.station).map((cy) => <rect {...owns(cy, 204)} />)}
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      {rows(bands.station).map((cy) => <rect {...box(ARTIST_X, ARTIST_W, cy)} />)}
+      {rows(bands.station).map((cy) => <rect {...box(SERVER_X, SERVER_W, cy)} />)}
+      {rows(bands.station).map((cy) => <line x1="420" y1={cy} x2="466" y2={cy} marker-end="url(#naArrow)" />)}
+      <path d="M560 650 H1000 V706 H1066" marker-end="url(#naArrow)" />
+      <line x1="560" y1="720" x2="1066" y2="720" marker-end="url(#naArrow)" />
+      <path d="M560 790 H1000 V734 H1066" marker-end="url(#naArrow)" />
+    </g>
+    <g class="na-label" text-anchor="middle">
+      {rows(bands.station).map((cy, i) => <text x="400" y={cy + 5}>{letters[i]}</text>)}
+      {rows(bands.station).map((cy) => <text x="515" y={cy + 5}>SERVER</text>)}
+    </g>
+
+    {showNameResolution && (
+      <g>
+        <rect x="438" y="610" width="148" height="220" fill="none" stroke="#adebb3" stroke-width="2" stroke-dasharray="2 6" />
+        <text x="438" y="852" class="na-mint">{networkLabel}</text>
+        <path d="M521 830 H1120 V744" fill="none" stroke="#adebb3" stroke-dasharray="2 6" marker-end="url(#naArrowMint)" />
+        <text x="1110" y="812" class="na-axis" text-anchor="end">{searchLabel}</text>
+      </g>
+    )}
+
+    <rect x="1070" y="700" width="100" height="40" fill="none" stroke="#ffffff" stroke-opacity="0.62" />
+    <text x="1120" y="725" class="na-label" text-anchor="middle">ONE APP</text>
+  </svg>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .na-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+  }
+  .na-plate svg {
+    width: 100%;
+    display: block;
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .na-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+  .na-tick  { fill: #8a8a8a; font-size: 11px; letter-spacing: 2px; }
+  .na-label { fill: #ffffff; font-size: 11px; letter-spacing: 2px; }
+  .na-mint  { fill: #adebb3; font-size: 11px; letter-spacing: 2px; }
+  .na-axis  { fill: #5a5a5a; font-size: 11px; letter-spacing: 2.4px; }
+</style>

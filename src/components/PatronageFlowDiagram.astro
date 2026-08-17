@@ -1,0 +1,214 @@
+---
+/**
+ * PatronageFlowDiagram — one-time patronage vs monthly subscription.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * Money is encoded as height at a constant 10px per $3, so the 12 monthly
+ * marks (10px) and the one-time bar (120px) total the same amount. Changing
+ * monthlyAmount or months preserves that; the aggregate row is a count
+ * encoding (circles) and deliberately carries no height meaning.
+ */
+interface Props {
+  monthlyAmount?: number;
+  months?: number;
+  patrons?: number;
+  caption?: string;
+  subLabel?: string;
+  subSubLabel?: string;
+  accessLabel?: string;
+  stopLabel?: string;
+  stopSubLabel?: string;
+  oneTimeLabel?: string;
+  oneTimeSubLabel?: string;
+  oneTimeAmountLabel?: string;
+  oneTimeConsolidation?: string;
+  fanPinLabel?: string;
+  fanPinSubLabel?: string;
+  axisFootnote?: string;
+  aggregateLabel?: string;
+  aggregateSubLabel?: string;
+  aggregateBracket?: string;
+  aggregateUnit?: string;
+  aggregateTotal?: string;
+  aggregateNote?: string;
+  showBracket?: boolean;
+  showStopMarker?: boolean;
+  showPermanentAccess?: boolean;
+  class?: string;
+}
+
+const {
+  monthlyAmount = 3,
+  months = 12,
+  patrons = 100,
+  caption = 'one-time patronage vs monthly subscription — illustrative amounts',
+  subLabel = 'MONTHLY SUBSCRIPTION',
+  subSubLabel = 'PATREON-SHAPED',
+  accessLabel = 'ACCESS — ONLY WHILE THE PAYMENTS KEEP COMING',
+  stopLabel = 'PAYMENTS STOP. ACCESS STOPS.',
+  oneTimeLabel = 'ONE-TIME PATRONAGE',
+  oneTimeSubLabel = 'FANSOCIETY',
+  oneTimeConsolidation = 'A YEAR OF MONTHLY PAYMENTS, CONSOLIDATED INTO THE PRESENT',
+  fanPinLabel = "ACCESS — FANPIN MINTED, GENERATION 1. MEMBERSHIP DOESN'T LAPSE.",
+  fanPinSubLabel = 'ONE PAYMENT. THE TIMESTAMP IS THE MEMBERSHIP.',
+  aggregateLabel = 'ONE MONTH, ONE HUNDRED PATRONS',
+  aggregateSubLabel = 'AGGREGATE',
+  aggregateUnit = '1 = 1 PATRON',
+  aggregateNote = 'SEED CAPITAL A RECORD DEAL USED TO PROVIDE',
+  showBracket = true,
+  showStopMarker = true,
+  showPermanentAccess = true,
+  class: className,
+} = Astro.props;
+
+const total = monthlyAmount * months;
+const money = (n: number) => '$' + n.toLocaleString('en-US');
+
+// geometry
+const PLOT_X = 200;          // y-axis / "now"
+const PLOT_END = 1196;
+const LAST_PAY_X = 920;      // month `months` — also the last axis tick
+const UNIT_PX = 10;          // px per monthlyAmount — the shared money scale
+const pitch = (LAST_PAY_X - PLOT_X) / months;
+const payX = Array.from({ length: months }, (_, i) => PLOT_X + (i + 1) * pitch);
+const barTop = 470;
+const barH = months * UNIT_PX;
+const barBase = barTop + barH;
+
+// derived copy (all overridable via props above)
+const bracketLabel = Astro.props.aggregateBracket
+  ?? `${patrons} PATRONS, EACH GIVING ${money(total)} ONCE`;
+const subBracket = `${money(total)} — ARRIVING ${money(monthlyAmount)} AT A TIME, OVER ONE YEAR`;
+const stopSub = Astro.props.stopSubLabel ?? `THE ${months} ALREADY PAID COUNT FOR NOTHING`;
+const oneTimeAmount = Astro.props.oneTimeAmountLabel
+  ?? `${money(total)} — ALL OF IT, ON DAY ONE`;
+const footnote = Astro.props.axisFootnote
+  ?? `BOTH ROWS TOTAL THE SAME ${money(total)}. ONLY THE TIMING AND THE EXPIRY DIFFER.`;
+const aggTotal = Astro.props.aggregateTotal
+  ?? `${money(total * patrons)} — IN A SINGLE MONTH`;
+
+// aggregate row: a count, not an amount — evenly spaced across the plot
+const patronPitch = (1190 - PLOT_X) / (patrons - 1);
+const patronX = Array.from({ length: patrons }, (_, i) => PLOT_X + i * patronPitch);
+
+const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
+  x: PLOT_X + t * (LAST_PAY_X - PLOT_X),
+  label: t === 0 ? 'NOW' : `${Math.round(t * months)} MO`,
+}));
+---
+
+<figure class:list={['pf-plate', className]}>
+  <svg viewBox="0 0 1248 1008" role="img" aria-label={caption}>
+    <defs>
+      <marker id="pfArrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#adebb3" />
+      </marker>
+    </defs>
+
+    <!-- monthly subscription -->
+    <text x="32" y="96" class="pf-label">{subLabel}</text>
+    <text x="32" y="118" class="pf-axis">{subSubLabel}</text>
+
+    {showBracket && (
+      <g>
+        <text x="575" y="252" class="pf-tick" text-anchor="middle">{subBracket}</text>
+        <path d={`M${payX[0]} 276 V266 H${LAST_PAY_X} V276`} fill="none" stroke="#ffffff" stroke-opacity="0.32" />
+      </g>
+    )}
+
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      {payX.map((x) => <rect x={x - 3} y={300 - UNIT_PX} width="7" height={UNIT_PX} />)}
+    </g>
+    <line x1={PLOT_X} y1="300" x2={PLOT_END} y2="300" stroke="#ffffff" stroke-opacity="0.14" />
+    <text x="188" y="304" class="pf-axis" text-anchor="end">{money(monthlyAmount)} EACH</text>
+
+    <line x1={PLOT_X} y1="336" x2={LAST_PAY_X} y2="336" stroke="#ffffff" stroke-opacity="0.62" stroke-width="2" />
+    <line x1={LAST_PAY_X} y1="326" x2={LAST_PAY_X} y2="346" stroke="#ffffff" stroke-opacity="0.62" stroke-width="2" />
+    <text x={PLOT_X} y="360" class="pf-tick">{accessLabel}</text>
+
+    {showStopMarker && (
+      <g>
+        <line x1="932" y1="330" x2="945" y2="330" stroke="#5a5a5a" stroke-dasharray="2 6" />
+        <text x={PLOT_END} y="334" class="pf-tick" text-anchor="end">{stopLabel}</text>
+        <text x={PLOT_END} y="360" class="pf-axis" text-anchor="end">{stopSub}</text>
+      </g>
+    )}
+
+    <line x1="0" y1="404" x2="1248" y2="404" stroke="#ffffff" stroke-opacity="0.16" />
+
+    <!-- one-time patronage -->
+    <text x="32" y="444" class="pf-label">{oneTimeLabel}</text>
+    <text x="32" y="466" class="pf-axis">{oneTimeSubLabel}</text>
+
+    <rect x="193" y={barTop} width="14" height={barH} fill="none" stroke="#ffffff" stroke-opacity="0.62" />
+    <text x="228" y="486" class="pf-label">{oneTimeAmount}</text>
+    <text x="228" y="508" class="pf-tick">{oneTimeConsolidation}</text>
+    <line x1={PLOT_X} y1={barBase} x2={PLOT_END} y2={barBase} stroke="#ffffff" stroke-opacity="0.14" />
+    <text x="188" y={barTop + 4} class="pf-axis" text-anchor="end">{money(total)}</text>
+
+    {showPermanentAccess && (
+      <g>
+        <line x1={PLOT_X} y1="626" x2="1188" y2="626" stroke="#adebb3" stroke-width="2" marker-end="url(#pfArrowMint)" />
+        <circle cx={PLOT_X} cy="626" r="5" fill="none" stroke="#adebb3" stroke-width="2" />
+        <text x={PLOT_X} y="650" class="pf-mint">{fanPinLabel}</text>
+      </g>
+    )}
+    <text x={PLOT_X} y="672" class="pf-axis">{fanPinSubLabel}</text>
+
+    <!-- shared time axis -->
+    <line x1={PLOT_X} y1="702" x2={PLOT_END} y2="702" stroke="#ffffff" stroke-opacity="0.32" />
+    <g stroke="#ffffff" stroke-opacity="0.32">
+      {ticks.map((t) => <line x1={t.x} y1="702" x2={t.x} y2="710" />)}
+    </g>
+    <g class="pf-tick">
+      {ticks.map((t) => <text x={t.x} y="730">{t.label}</text>)}
+    </g>
+    <text x={PLOT_END} y="730" class="pf-tick" text-anchor="end">LATER</text>
+    <text x={PLOT_X} y="752" class="pf-axis">{footnote}</text>
+
+    <line x1="0" y1="784" x2="1248" y2="784" stroke="#ffffff" stroke-opacity="0.16" />
+
+    <!-- aggregate: a count, not an amount -->
+    <text x="32" y="824" class="pf-label">{aggregateLabel}</text>
+    <text x="32" y="846" class="pf-axis">{aggregateSubLabel}</text>
+
+    <text x="695" y="884" class="pf-tick" text-anchor="middle">{bracketLabel}</text>
+    <path d="M200 908 V898 H1190 V908" fill="none" stroke="#ffffff" stroke-opacity="0.32" />
+
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      {patronX.map((x) => <circle cx={x} cy="919" r="3" />)}
+    </g>
+    <text x="188" y="923" class="pf-axis" text-anchor="end">{aggregateUnit}</text>
+
+    <text x={PLOT_X} y="956" class="pf-label">{aggTotal}</text>
+    <text x={PLOT_X} y="978" class="pf-tick">{aggregateNote}</text>
+  </svg>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .pf-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+  }
+  .pf-plate svg {
+    width: 100%;
+    display: block;
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .pf-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+  .pf-tick  { fill: #8a8a8a; font-size: 11px; letter-spacing: 2px; }
+  .pf-label { fill: #ffffff; font-size: 11px; letter-spacing: 2px; }
+  .pf-mint  { fill: #adebb3; font-size: 11px; letter-spacing: 2px; }
+  .pf-axis  { fill: #5a5a5a; font-size: 11px; letter-spacing: 2.4px; }
+</style>

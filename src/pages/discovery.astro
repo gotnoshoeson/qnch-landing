@@ -1,0 +1,492 @@
+---
+import { Image } from 'astro:assets';
+import Page from '../layouts/Page.astro';
+import NetworkArchitectureDiagram from '../components/NetworkArchitectureDiagram.astro';
+import listenerApp from '../assets/listener-app.png';
+
+const steps = [
+	{
+		n: '01',
+		title: 'A fan searches your namespace',
+		body: 'They type the handle you claimed. No browse page led them here — they came looking, or somebody sent them.',
+	},
+	{
+		n: '02',
+		title: 'The network resolves it to your node',
+		body: 'Your server announced that name when you saved it: this name belongs to this node, and here is where to reach it. Other nodes remember.',
+	},
+	{
+		n: '03',
+		title: 'Your catalog loads from your server',
+		body: 'Covers, titles, track listings, prices — read straight off the machine you are paying for.',
+	},
+	{
+		n: '04',
+		title: 'Play streams the audio directly',
+		body: 'Your server to their browser. The audio does not pass through us, or through anybody else.',
+	},
+];
+
+const wallet = [
+	{ free: 'Finding you', gated: 'Buying or renting' },
+	{ free: 'Viewing your profile and catalog', gated: 'Minting a FanPin' },
+	{ free: 'Streaming free, public tracks', gated: 'Streaming fan-only music' },
+	{ free: 'Following and saving albums', gated: 'Downloading' },
+];
+---
+
+<Page
+	slug="discovery"
+	description="No recommendation engine, no browse page, no directory — and none of them are on the roadmap. Fans reach your music by searching your namespace or opening a link, streaming directly off your server."
+	lede="There is no feed here. Fans arrive because they went looking, or because somebody sent them — and the audio comes straight off your machine."
+>
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The absence</p>
+			<h2>What isn't here, on purpose</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						No recommendation engine. No browse page. No directory. No charts, no front page,
+						nothing queued up after the record you chose.
+					</p>
+					<p>
+						These aren't features we haven't got to yet. They're not on the roadmap and they're not
+						coming.
+					</p>
+				</div>
+
+				<div class="prose">
+					<p>
+						Streaming platforms didn't only take over hosting, distribution and payment. They took
+						over discovery and curation too — and once one company does all of it, there's very
+						little room left for anybody else to matter.
+					</p>
+					<p>
+						Station isn't trying to replace that model with a better-behaved version of the same
+						thing. It's trying to break it apart and hand the pieces back.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The mechanism</p>
+			<h2>How a fan reaches your music</h2>
+			<p class="lede intro">
+				Four steps, and only the first one involves anything you'd call discovery.
+			</p>
+
+			<ol class="steps">
+				{
+					steps.map((step) => (
+						<li class="step">
+							<span class="n" aria-hidden="true">
+								{step.n}
+							</span>
+							<div>
+								<h3>{step.title}</h3>
+								<p>{step.body}</p>
+							</div>
+						</li>
+					))
+				}
+			</ol>
+
+			<NetworkArchitectureDiagram />
+
+			<aside class="callout">
+				<span class="stamp">worth noticing</span>
+				<p>
+					Step four is the one that matters. The audio doesn't pass through us or through anyone
+					else — it's your server talking to your listener. Which also means your server's
+					connection <em>is</em> your listeners' experience.
+				</p>
+			</aside>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Your handle</p>
+			<h2>The namespace is the whole address book</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p>
+						Your namespace is what fans type to find you. Imagine two bands called The Chips — one
+						holds <code class="inline">thechips</code>, the other <code class="inline">thechipsog</code
+						>. Names are claimed first come, first served.
+					</p>
+					<p>
+						When you save it, your node announces it to the rest of the network. There's no registry
+						company, no renewal invoice, and nobody who can reassign it. Once it's claimed and
+						confirmed it's <strong>permanent</strong> — so choose carefully.
+					</p>
+				</div>
+
+				<div class="url-block">
+					<span class="url-label">what you share</span>
+					<code>beta.qnch.network/artist/<span class="mint">your-namespace</span></code>
+					<p class="url-note">
+						A link works whether or not the person opening it has ever heard of qnch. That's the
+						other half of discovery: you send it, a blog embeds it, a friend forwards it.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The trade</p>
+			<h2>Your node is your availability</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						If your server is off, your music is unavailable. Not deleted — unavailable.
+					</p>
+					<p>
+						Nobody else holds a copy. While your node is down, fans can't stream, buy, or download
+						from you. When it comes back, everything resumes exactly where it was.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						That's the trade for owning your distribution outright: no one can take your music down,
+						and no one can keep it up for you either.
+					</p>
+					<p>
+						It's also the practical argument for a cheap VPS that stays on over a laptop that goes
+						to sleep. Uptime is now a thing you own.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Room left over</p>
+			<h2>The empty space is the point</h2>
+
+			<div class="prose wide">
+				<p>
+					Reviewers, critics, DJs, curators, blogs, record shops, magazines, and one person sending
+					another person a link. There's little room for any of them when a platform does everything,
+					and the space Station leaves empty is exactly the space they work in.
+				</p>
+				<p>
+					Leaving it empty is what lets those people operate as themselves rather than as inputs to
+					somebody's ranking model. We're not competing with the essential parts of music culture. We
+					just stopped absorbing them.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The listener app</p>
+			<h2>What your fans actually use</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						A web app at beta.qnch.network. Nothing to install, works in any browser.
+					</p>
+					<p>
+						Fans can stream your music, buy a track or an album, rent an album for a window if
+						you've enabled it, mint a FanPin to join your fan club, download anything they've
+						bought, and follow you — with their follows and saved albums kept in their own browser.
+					</p>
+				</div>
+
+				<figure class="shot">
+					<Image
+						src={listenerApp}
+						alt="The qnch listener app: a dark interface with Search, Library and Wallet in the header, the Station wordmark, and a card reading Artist Operated."
+						widths={[400, 600, 900, 1200]}
+						sizes="(max-width: 62rem) 100vw, 592px"
+						loading="lazy"
+						decoding="async"
+					/>
+					<figcaption>beta.qnch.network — search, library, wallet</figcaption>
+				</figure>
+			</div>
+
+			<h3 class="sub">When a fan needs a wallet</h3>
+			<p class="sub-note">
+				Nothing gets in the way of listening to music you've made public. A wallet only appears when
+				money or fan-only access does.
+			</p>
+
+			<div class="table" role="table" aria-label="When a fan needs a wallet">
+				<div class="thead" role="row">
+					<span role="columnheader">No wallet needed</span>
+					<span role="columnheader" class="gated">Wallet required</span>
+				</div>
+				{
+					wallet.map((r) => (
+						<div class="trow" role="row">
+							<span role="cell">{r.free}</span>
+							<span role="cell" class="gated">
+								{r.gated}
+							</span>
+						</div>
+					))
+				}
+			</div>
+
+			<div class="prose wide gap">
+				<p>
+					When you gate music to a FanPin generation, your node checks which generations the fan's
+					wallet holds and serves the audio only if their FanPin opens that door. Access is
+					<strong>per generation</strong>, not a blanket pass — holding any FanPin doesn't unlock
+					everything. That's what lets early membership mean something.
+				</p>
+			</div>
+		</div>
+	</section>
+</Page>
+
+<style>
+	.prose p {
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.prose p + p {
+		margin-top: 1.1rem;
+	}
+
+	.prose .lede {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	.prose strong {
+		color: var(--white);
+		font-weight: 500;
+	}
+
+	.prose em {
+		font-style: normal;
+		color: var(--mint);
+	}
+
+	.wide p {
+		max-width: 68ch;
+	}
+
+	.gap {
+		margin-top: clamp(2rem, 4vw, 2.75rem);
+	}
+
+	h2 + .two,
+	h2 + .prose {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+	}
+
+	.intro {
+		margin-top: 1.25rem;
+	}
+
+	.two {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: start;
+	}
+
+	code.inline {
+		font-family: var(--mono);
+		font-size: 0.82em;
+		color: var(--mint);
+	}
+
+	/* ---- the four steps ---------------------------------------------- */
+
+	.steps {
+		list-style: none;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.step {
+		display: grid;
+		grid-template-columns: minmax(3.5rem, 7rem) 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: clamp(1.35rem, 3vw, 2rem) 0;
+		border-top: 1px solid var(--rule);
+		align-items: start;
+	}
+
+	.step:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.step .n {
+		font-family: var(--display);
+		font-size: clamp(1.75rem, 5vw, 3.25rem);
+		line-height: 0.8;
+		letter-spacing: -0.04em;
+		color: transparent;
+		-webkit-text-stroke: 1px var(--mint);
+		user-select: none;
+	}
+
+	.step h3 {
+		margin-bottom: 0.7rem;
+	}
+
+	.step p {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+		max-width: var(--measure);
+	}
+
+	/* The SVG plate ships with margin: 0, so the page supplies its air. */
+	.wrap :global(.na-plate) {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0;
+	}
+
+	/* ---- namespace url block ----------------------------------------- */
+
+	.url-block {
+		border: 1px solid var(--rule);
+		padding: clamp(1.25rem, 3vw, 1.75rem);
+		background: rgba(255, 255, 255, 0.02);
+		transform: rotate(-0.5deg);
+	}
+
+	.url-label {
+		display: block;
+		font-size: 0.6rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		margin-bottom: 0.6rem;
+	}
+
+	.url-block code {
+		font-family: var(--mono);
+		font-size: clamp(0.72rem, 0.66rem + 0.3vw, 0.88rem);
+		word-break: break-all;
+	}
+
+	.url-note {
+		margin-top: 1rem;
+		font-size: 0.78rem;
+		line-height: 1.7;
+		color: var(--gray);
+	}
+
+	/* ---- callout ------------------------------------------------------ */
+
+	.callout {
+		display: flex;
+		gap: clamp(1rem, 3vw, 2rem);
+		flex-wrap: wrap;
+		align-items: flex-start;
+		padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--mint-rule);
+	}
+
+	.callout p {
+		flex: 1;
+		min-width: 18rem;
+		font-size: 0.85rem;
+		line-height: 1.75;
+		color: rgba(255, 255, 255, 0.82);
+		max-width: 58ch;
+	}
+
+	.callout em {
+		font-style: normal;
+		color: var(--mint);
+	}
+
+	/* ---- listener screenshot ------------------------------------------ */
+
+	.shot {
+		border: 1px solid var(--rule);
+		background: var(--black);
+	}
+
+	/* :global because <Image> renders the <img> outside this component's scope. */
+	.shot :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.shot figcaption {
+		font-size: 0.65rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		padding: 0.75rem 0.9rem;
+		border-top: 1px solid var(--rule);
+	}
+
+	/* ---- wallet table -------------------------------------------------- */
+
+	.sub {
+		margin-top: clamp(3rem, 6vw, 4.5rem);
+	}
+
+	.sub-note {
+		margin-top: 0.9rem;
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: var(--gray);
+		max-width: 58ch;
+	}
+
+	.table {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--rule);
+	}
+
+	.thead,
+	.trow {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: 0.9rem 0;
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.thead span {
+		font-size: 0.62rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.thead .gated {
+		color: var(--mint);
+	}
+
+	.trow span {
+		font-size: 0.85rem;
+		line-height: 1.6;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.trow .gated {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	@media (max-width: 40rem) {
+		.step {
+			grid-template-columns: 1fr;
+			gap: 0.6rem;
+		}
+	}
+</style>

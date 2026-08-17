@@ -1,4 +1,5 @@
 ---
+import SectionLink from './SectionLink.astro';
 ---
 
 <section class="section invert noise" id="money">
@@ -21,23 +22,17 @@
 		<div class="body">
 			<div class="col">
 				<p class="lede">
-					Station is launching with zero rev share. You keep all of your income. Only smart contract based finance models can provide this guarantee.
+					Station is launching with zero rev share. You keep all of your income.
 				</p>
 				<p>
-					All payments are routed through smart contracts that
-					<strong>you</strong> deploy and <strong>you</strong> own.
-					The payment split logic is baked into your contracts and can't be modified by anyone, ever.
-					There's no invoice, no billing cycle, and no moment where we hold your money and pass some of it back.
+					Nobody has built music distribution this way before, and taking a chance on something
+					unproven should be worth more than showing up once it's safe. So the advantage is
+					<strong>built in</strong>, not promised.
 				</p>
 				<p>
-					Station can increase this rev share rate in the future for later adopters in order to grow the
-					services over time, but artists rates are locked in at a cryptographically guaranteed level,
-					rather than a platform promise that we're trying to sell you on.
-					The smart contract infrastructure is what lets us find a balance between providing a minimally
-					extractive solution for artists that favors the early adopters and paves a path for Station to 
-					grow and expand services over time.
-					Whatever your split was on the day you deployed is the split it keeps,
-					permanently.
+					As Station grows, the rate for artists joining later can rise. Yours doesn't move —
+					whatever your split was on the day you started is the split it keeps, permanently. The
+					earliest artists hold the best terms anyone will ever have.
 				</p>
 			</div>
 
@@ -45,18 +40,10 @@
 				<blockquote>
 					The protection isn't that we promise not to raise your rate. It's that we can't.
 				</blockquote>
-
-				<p class="aside">
-					A streaming platform sets its terms in an agreement and reserves the right to revise it.
-					There's no recourse because there's nothing to enforce — the terms live on their side of
-					the relationship, and so does the ability to rewrite them.
-				</p>
-				<p class="aside">
-					The first increase, whenever it arrives, will be 1% | 99%, and it will apply only to
-					contracts deployed after it. There is no rev share increase schedule; we're gonna play it by ear.
-				</p>
 			</div>
 		</div>
+
+		<SectionLink slug="revenue" />
 	</div>
 </section>
 
@@ -169,5 +156,21 @@
 
 	.aside + .aside {
 		margin-top: 1.1rem;
+	}
+
+	/* SectionLink ships light-on-dark; this section is inverted, so restate it.
+	   :global because the link is rendered by a child component. */
+	.invert :global(.section-link) {
+		color: rgba(0, 0, 0, 0.62);
+		border-top-color: rgba(0, 0, 0, 0.25);
+	}
+
+	.invert :global(.section-link .n),
+	.invert :global(.section-link:hover) {
+		color: #158a3f;
+	}
+
+	.invert :global(.section-link:hover) {
+		border-top-color: #158a3f;
 	}
 </style>

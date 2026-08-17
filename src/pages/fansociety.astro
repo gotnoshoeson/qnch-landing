@@ -1,0 +1,318 @@
+---
+import Page from '../layouts/Page.astro';
+import PatronageFlowDiagram from '../components/PatronageFlowDiagram.astro';
+import GenerationsDiagram from '../components/GenerationsDiagram.astro';
+import WhyGenerationsDiagram from '../components/WhyGenerationsDiagram.astro';
+
+const setup = [
+	{
+		n: '01',
+		title: 'Deploy the contract',
+		body: 'Connect a wallet, choose where revenue is paid — your wallet or your Treasury — and deploy. One on-chain transaction plus gas. If you want revenue pooling in a treasury, deploy that first: the payee choice is permanent.',
+	},
+	{
+		n: '02',
+		title: 'Open a generation',
+		body: 'Set a token fee, which is the minimum donation. Add the FanPin artwork, up to 10 MB, and a description saying whatever you want it to say — or nothing. It goes live as your active generation.',
+	},
+	{
+		n: '03',
+		title: 'Point your catalog at it',
+		body: 'In the Catalog, grant that generation access to an album or a single track: a date it opens, and whether streaming is free or paid for them. Stack groups to stagger a release across cohorts.',
+	},
+	{
+		n: '04',
+		title: 'Close it when you are ready',
+		body: 'Creating the next generation closes the last one. That cohort is now sealed, permanently and publicly, and can never be joined again.',
+	},
+];
+---
+
+<Page
+	slug="fansociety"
+	description="FanSociety is fan club infrastructure built on generations rather than scarcity. A one-time donation mints a FanPin that timestamps when a fan found you, and the cohort seals when you open the next generation."
+	lede="A novel crowdfunding solution that works the way you'd expect. Unapologetically anti-subscription."
+>
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Think different</p>
+			<h2>Step outside the box with us</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						Subscriptions aren't a good fit for fandom. The moment you stop paying,
+						you're out of the fan club. Your previous patronage is no longer valuable.
+						This isn't really how the music world works in the minds of music junkies.
+						Discovering new music is the real social currency.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						FanSociety replaces the recurring charge with a one-time donation that leaves a
+						permanent on-chain receipt — a <strong>FanPin</strong>. A FanPin solves two issues at once.
+						One, it timestamps when a fan discovered, started following, and supported an artist.
+						Two, it consolidates months of subscription patronage into one large gift right now, turning
+						a slow drip of funding into a substantial amount to bootstrap an artist's carrer.
+					</p>
+				</div>
+			</div>
+
+			<PatronageFlowDiagram />
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">research and development</p>
+			<h2>Finding the perfect fit</h2>
+			<p class="lede intro">
+				Most patronage models sort fans by how much they paid or how fast they clicked. We wanted one
+				that sorts by when someone showed up, at a resolution an artist can actually manage.
+			</p>
+
+			<WhyGenerationsDiagram />
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The mechanism</p>
+			<h2>How a generation works</h2>
+			<p class="lede intro">
+				Everything about the model is taken from existing social contracts. FanSociety uses a cohorts model that is manageable for artists and fair for fans.
+			</p>
+
+			<GenerationsDiagram />
+
+			<div class="prose wide">
+				<p>
+					While a generation is open, any number of fans can mint into it at or above your token fee.
+					When you create the next one, the previous closes — permanently. Nobody joins Generation 1
+					in year four.
+				</p>
+				<p>
+					That single rule is what turns a fan club into a record. Over a career you accumulate
+					cohorts, each one stamped with the period it belonged to, and the ordering can never be
+					rewritten because it was never stored anywhere you or we could edit.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Access</p>
+			<h2>What a FanPin actually opens</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p>
+						FanPins can be used by fans to flex on their friends, but more interestingly, artists can give privileged access to content
+						based on FanPin holders. This works natively with Station on day one and we see growing number of features that can take
+						advantage of the FanPin model.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						FanPins with Station are flexible. Artists can do early releases based on FanPin generations.
+						Tracks and albums can even be gated for fan club members only. Station makes this all possible,
+						but doesn't tell artists exactly how they can and can't use it.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Setting it up</p>
+			<h2>Four steps, from the dashboard</h2>
+
+			<ol class="steps">
+				{
+					setup.map((s) => (
+						<li class="step">
+							<span class="n" aria-hidden="true">
+								{s.n}
+							</span>
+							<div>
+								<h3>{s.title}</h3>
+								<p>{s.body}</p>
+							</div>
+						</li>
+					))
+				}
+			</ol>
+
+			<aside class="callout">
+				<span class="stamp">wallet required</span>
+				<p>
+					The Fan Club is on-chain, so it needs a connected browser wallet holding enough of the
+					chain's token to cover the deploy cost and gas. On the current test network those tokens
+					are free from a faucet, so you can practise the whole flow — deploy, mint, withdraw —
+					without spending anything.
+				</p>
+			</aside>
+
+			<p class="ask">
+				FanSociety is its own protocol, and there's more about it at <a
+					href="https://www.fansociety.xyz/"
+					target="_blank"
+					rel="noopener noreferrer">fansociety.xyz</a
+				>.
+			</p>
+		</div>
+	</section>
+</Page>
+
+<style>
+	.prose p {
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.prose p + p {
+		margin-top: 1.1rem;
+	}
+
+	.prose .lede {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	.prose strong {
+		color: var(--white);
+		font-weight: 500;
+	}
+
+	.prose em {
+		font-style: normal;
+		color: var(--mint);
+	}
+
+	.prose a {
+		color: var(--mint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.prose a:hover {
+		border-bottom-color: var(--mint);
+	}
+
+	.wide p {
+		max-width: 68ch;
+	}
+
+	.intro {
+		margin-top: 1.25rem;
+	}
+
+	h2 + .two,
+	h2 + .prose {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+	}
+
+	.two {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: start;
+	}
+
+	/* The SVG plates ship with margin: 0, so the page supplies their air. */
+	.wrap :global(.pf-plate) {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+	}
+
+	/* This one has prose on both sides of it. */
+	.wrap :global(.gn-plate) {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0;
+	}
+
+	.wrap :global(.wg-plate) {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+	}
+
+	.steps {
+		list-style: none;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.step {
+		display: grid;
+		grid-template-columns: minmax(3.5rem, 7rem) 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: clamp(1.35rem, 3vw, 2rem) 0;
+		border-top: 1px solid var(--rule);
+		align-items: start;
+	}
+
+	.step:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.step .n {
+		font-family: var(--display);
+		font-size: clamp(1.75rem, 5vw, 3.25rem);
+		line-height: 0.8;
+		letter-spacing: -0.04em;
+		color: transparent;
+		-webkit-text-stroke: 1px var(--mint);
+		user-select: none;
+	}
+
+	.step h3 {
+		margin-bottom: 0.7rem;
+	}
+
+	.step p {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+		max-width: var(--measure);
+	}
+
+	.callout {
+		display: flex;
+		gap: clamp(1rem, 3vw, 2rem);
+		flex-wrap: wrap;
+		align-items: flex-start;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+		padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--mint-rule);
+	}
+
+	.callout p {
+		flex: 1;
+		min-width: 18rem;
+		font-size: 0.82rem;
+		line-height: 1.75;
+		color: var(--gray);
+		max-width: 58ch;
+	}
+
+	.ask {
+		margin-top: clamp(2rem, 4vw, 2.75rem);
+		font-size: 0.85rem;
+		color: var(--gray);
+	}
+
+	.ask a {
+		color: var(--mint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.ask a:hover {
+		border-bottom-color: var(--mint);
+	}
+
+	@media (max-width: 40rem) {
+		.step {
+			grid-template-columns: 1fr;
+			gap: 0.6rem;
+		}
+	}
+</style>

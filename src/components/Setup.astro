@@ -10,7 +10,7 @@ const steps = [
 		n: '02',
 		title: 'Run one command',
 		body: "Copy the install command to run the interactive installer. Answer a few questions, the installer does the hard, scary stuff for you.",
-		note: 'docs.qnch.network has step by step instructions. You can do this, we believe in you.',
+		note: '<a href="https://docs.qnch.network" target="_blank" rel="noopener noreferrer">docs.qnch.network</a> has step by step instructions. You can do this, we believe in you.',
 	},
 	{
 		n: '03',
@@ -38,7 +38,7 @@ const steps = [
 						<div class="step-body">
 							<h3>{step.title}</h3>
 							<p>{step.body}</p>
-							<p class="note">{step.note}</p>
+							<p class="note" set:html={step.note} />
 						</div>
 					</li>
 				))
@@ -101,6 +101,16 @@ const steps = [
 		border-left: 1px solid var(--mint-rule);
 		padding-left: 0.85rem;
 		max-width: 44ch;
+	}
+
+	.note :global(a) {
+		color: var(--mint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.note :global(a:hover) {
+		border-bottom-color: var(--mint);
 	}
 
 	@media (max-width: 40rem) {

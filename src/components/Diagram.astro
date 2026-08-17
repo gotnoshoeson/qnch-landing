@@ -1,0 +1,101 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+/**
+ * A diagram plate. Same hairline-and-caption treatment as the screenshot
+ * plates, so figures across the site read as one system.
+ *
+ * Until an asset exists, renders a labelled placeholder describing what
+ * belongs there. To fill it: drop the file in src/assets/, import it, and
+ * pass it as `src`. SVG is preferred (sharp at any size, tiny, and it can
+ * inherit the page's colours); PNG/WebP also fine at 2x the display width.
+ */
+interface Props {
+	src?: ImageMetadata;
+	alt?: string;
+	caption: string;
+	/** Shown in the placeholder only — what the diagram needs to depict. */
+	spec?: string;
+	/** Intrinsic aspect, used to reserve space so nothing shifts on load. */
+	ratio?: string;
+}
+
+const { src, alt, caption, spec, ratio = '16 / 7' } = Astro.props;
+---
+
+<figure class="diagram">
+	{
+		src ? (
+			<Image
+				src={src}
+				alt={alt ?? ''}
+				widths={[600, 900, 1248]}
+				sizes="(max-width: 78rem) 100vw, 1248px"
+				loading="lazy"
+				decoding="async"
+			/>
+		) : (
+			<div class="placeholder" style={`aspect-ratio: ${ratio}`}>
+				<span class="tag">diagram slot</span>
+				{spec && <p class="spec">{spec}</p>}
+			</div>
+		)
+	}
+	<figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+	.diagram {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0;
+		border: 1px solid var(--rule);
+		background: var(--black);
+	}
+
+	/* :global because <Image> renders the <img> outside this component's scope. */
+	.diagram :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.placeholder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.9rem;
+		padding: clamp(1.5rem, 4vw, 3rem);
+		text-align: center;
+		background-image: repeating-linear-gradient(
+			-45deg,
+			rgba(173, 235, 179, 0.05) 0 1px,
+			transparent 1px 11px
+		);
+	}
+
+	.tag {
+		font-size: 0.62rem;
+		letter-spacing: 0.24em;
+		text-transform: uppercase;
+		color: var(--mint);
+		border: 1px dashed var(--mint-rule);
+		padding: 0.35rem 0.65rem;
+	}
+
+	.spec {
+		font-size: 0.78rem;
+		line-height: 1.65;
+		color: var(--gray);
+		max-width: 46ch;
+	}
+
+	figcaption {
+		font-size: 0.65rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		padding: 0.75rem 0.9rem;
+		border-top: 1px solid var(--rule);
+	}
+</style>

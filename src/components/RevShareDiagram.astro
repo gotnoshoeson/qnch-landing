@@ -1,0 +1,176 @@
+---
+/**
+ * RevShareDiagram — station's cut over time.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * Every string is a prop with a default, so copy edits can happen either here
+ * or at the call site. Colours are the raw brand values (same literals as
+ * Base.astro's tokens) because SVG presentation attributes can't take var().
+ */
+interface Step {
+  /** x where this tread starts */
+  x: number;
+  /** x where it ends */
+  x2: number;
+  /** y of the tread — 430 is 0%, each 1% is 78px up */
+  y: number;
+  /** the split label sitting above the tread */
+  label: string;
+  /** carry-forward note; omit for no carry-forward line on this step */
+  carry?: string;
+}
+
+interface Props {
+  caption?: string;
+  yAxisLabel?: string;
+  headerNote?: string;
+  todayLabel?: string;
+  lockedNote?: string;
+  timeNote?: string;
+  timeTicks?: { x: number; label: string }[];
+  steps?: Step[];
+  dashedFuture?: boolean;
+  showLockedContract?: boolean;
+  showGrid?: boolean;
+  class?: string;
+}
+
+const {
+  caption = "station's cut over time — steps are illustrative",
+  yAxisLabel = "STATION'S CUT",
+  headerNote = "STATION'S SPLIT FOR CONTRACTS DEPLOYED THAT DAY",
+  todayLabel = '0% | 100% — TODAY',
+  lockedNote = 'YOUR CONTRACT, DEPLOYED TODAY — 0% | 100% FOR AS LONG AS IT RUNS',
+  timeNote = 'TIME — NOT A SCHEDULE. NO DATES ARE SET AND THE NUMBER OF STEPS IS NOT DECIDED.',
+  timeTicks = [
+    { x: 170, label: 'NOW' },
+    { x: 480, label: 'SOMETIME' },
+    { x: 760, label: 'SOMETIME AFTER THAT' },
+    { x: 1000, label: 'AND SO ON' },
+  ],
+  steps = [
+    { x: 480, x2: 760, y: 352, label: '1% | 99%', carry: 'CONTRACTS DEPLOYED HERE LOCK 1% | 99%, AND KEEP IT' },
+    { x: 760, x2: 1000, y: 274, label: '? | ?', carry: 'THESE LOCK THIS RATE' },
+    { x: 1000, x2: 1140, y: 196, label: '? | ?' },
+  ],
+  dashedFuture = true,
+  showLockedContract = true,
+  showGrid = true,
+  class: className,
+} = Astro.props;
+
+const BASE_Y = 430;      // the 0% tread
+const PLOT_X = 170;      // y-axis
+const RIGHT = 1188;      // where carry-forward arrows terminate
+const futureDash = dashedFuture ? '7 7' : undefined;
+
+// risers + treads, drawn as one polyline from the 0% tread onward
+const futurePath = steps
+  .map((s, i) => {
+    const from = i === 0 ? BASE_Y : steps[i - 1].y;
+    return `M${s.x} ${from} V${s.y} H${s.x2}`;
+  })
+  .join(' ');
+const lastStep = steps[steps.length - 1];
+---
+
+<figure class:list={['rs-plate', className]}>
+  <svg viewBox="0 0 1248 600" role="img" aria-label={caption}>
+    <defs>
+      <marker id="rsArrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#adebb3" />
+      </marker>
+      <marker id="rsArrowWhite" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#ffffff" />
+      </marker>
+      <marker id="rsArrowDim" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#8a8a8a" />
+      </marker>
+    </defs>
+
+    {showGrid && (
+      <g stroke="#ffffff" stroke-opacity="0.14">
+        {[118, 196, 274, 352].map((y) => <line x1="170" y1={y} x2="1200" y2={y} />)}
+      </g>
+    )}
+
+    <g class="rs-tick" text-anchor="end">
+      {[[122, '4%'], [200, '3%'], [278, '2%'], [356, '1%']].map(([y, t]) => (
+        <text x="152" y={y}>{t}</text>
+      ))}
+    </g>
+    <text x="152" y="434" class="rs-label" text-anchor="end">0%</text>
+
+    <line x1="170" y1="96" x2="170" y2="430" stroke="#ffffff" stroke-opacity="0.32" />
+    <text x="66" y="270" class="rs-axis" text-anchor="middle" transform="rotate(-90 66 270)">{yAxisLabel}</text>
+
+    <text x="1200" y="86" class="rs-tick" text-anchor="end">{headerNote}</text>
+
+    <g fill="none" stroke="#ffffff" stroke-width="2">
+      <path d={`M${PLOT_X} ${BASE_Y} H${steps[0].x}`} />
+      <g stroke-dasharray={futureDash}>
+        <path d={futurePath} />
+        <path d={`M${lastStep.x2} ${lastStep.y} H1196`} marker-end="url(#rsArrowWhite)" />
+      </g>
+    </g>
+
+    <text x="182" y="414" class="rs-label">{todayLabel}</text>
+    <g class="rs-tick">
+      {steps.map((s) => <text x={s.x + 12} y={s.y - 16}>{s.label}</text>)}
+    </g>
+
+    <g stroke="#8a8a8a" stroke-dasharray="3 5" fill="none">
+      {steps.filter((s) => s.carry).map((s) => (
+        <line x1={s.x} y1={s.y + 6} x2={RIGHT} y2={s.y + 6} marker-end="url(#rsArrowDim)" />
+      ))}
+    </g>
+    <g class="rs-tick" text-anchor="end">
+      {steps.filter((s) => s.carry).map((s) => <text x={RIGHT} y={s.y + 28}>{s.carry}</text>)}
+    </g>
+
+    {showLockedContract && (
+      <g>
+        <line x1="170" y1="437" x2={RIGHT} y2="437" stroke="#adebb3" stroke-width="2" marker-end="url(#rsArrowMint)" />
+        <circle cx="170" cy="437" r="5" fill="none" stroke="#adebb3" stroke-width="2" />
+        <text x={RIGHT} y="464" class="rs-mint" text-anchor="end">{lockedNote}</text>
+      </g>
+    )}
+
+    <line x1="170" y1="506" x2="1200" y2="506" stroke="#ffffff" stroke-opacity="0.32" />
+    <g stroke="#ffffff" stroke-opacity="0.32">
+      {timeTicks.map((t) => <line x1={t.x} y1="506" x2={t.x} y2="514" />)}
+    </g>
+    <g class="rs-tick">
+      {timeTicks.map((t) => <text x={t.x} y="534">{t.label}</text>)}
+    </g>
+    <text x="170" y="570" class="rs-axis">{timeNote}</text>
+  </svg>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .rs-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+  }
+  .rs-plate svg {
+    width: 100%;
+    display: block;
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .rs-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+  .rs-tick { fill: #8a8a8a; font-size: 11px; letter-spacing: 2px; }
+  .rs-label { fill: #ffffff; font-size: 11px; letter-spacing: 2px; }
+  .rs-mint { fill: #adebb3; font-size: 11px; letter-spacing: 2px; }
+  .rs-axis { fill: #5a5a5a; font-size: 11px; letter-spacing: 2.4px; }
+</style>

@@ -2,18 +2,21 @@
 interface Props {
 	title?: string;
 	description?: string;
+	/** Root-relative path to a 1200x630 preview card. Defaults to the site card. */
+	image?: string;
 }
 
 const {
 	title = 'qnch — run your own streaming service',
 	description = 'Station is a music server you host yourself. One command, about ten minutes, roughly $4 a month. Fans stream directly off your machine. You keep 100% of what you earn.',
+	image = '/og.png',
 } = Astro.props;
 
 // Link-preview scrapers need absolute URLs — relative paths are silently
 // dropped by most of them. qnch.network redirects to www, so www is canonical.
 const SITE = 'https://www.qnch.network';
 const canonical = new URL(Astro.url.pathname, SITE).href;
-const ogImage = new URL('/og.png', SITE).href;
+const ogImage = new URL(image, SITE).href;
 ---
 
 <!doctype html>

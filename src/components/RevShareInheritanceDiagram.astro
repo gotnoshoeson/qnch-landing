@@ -1,0 +1,208 @@
+---
+/**
+ * RevShareInheritanceDiagram — where an artist's split comes from, and why it
+ * cannot move afterwards.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * Reading order is left to right: the factory holds one number, the dashed mint
+ * line carries a COPY of it into each contract at deploy, and every sale then
+ * settles against that copy. The dashed line has no return path on purpose —
+ * that absence is the argument the diagram is making.
+ *
+ * Two line conventions, and they never cross:
+ *   solid white  — money (fan payments in, the split out)
+ *   dashed mint  — the rate, travelling once, at deploy time
+ *
+ * Both conventions enter the contract boxes through the same top edge, kept
+ * apart horizontally: the rate lands left of centre (x 678 / 918), the fan
+ * payment right of centre (x 758 / 998). Keep that separation if you move
+ * anything — it is what lets the two conventions share an edge.
+ *
+ * The Station branch out of the split is drawn dimmer than the artist branch,
+ * so stroke weight matches the 0% claim.
+ *
+ * Treasury and multisig are deliberately absent. They are a separate diagram;
+ * adding them here buries the inheritance point.
+ */
+interface Props {
+  /** Rate as it stands in the factory today, written station | artist. */
+  currentRate?: string;
+  artistShare?: string;
+  stationShare?: string;
+  shopLabel?: string;
+  shopSubLabel?: string;
+  fanClubLabel?: string;
+  fanClubSubLabel?: string;
+  factoryLabel?: string;
+  factoryNotes?: string[];
+  inheritanceLabel?: string;
+  ownershipLabel?: string;
+  settlementNotes?: string[];
+  footnotes?: string[];
+  keyLine?: string;
+  caption?: string;
+  /** Draw the split row (artist / station) at all. */
+  showSplit?: boolean;
+  class?: string;
+}
+
+const {
+  currentRate = 'RATE TODAY — 0% | 100%',
+  artistShare = '100%',
+  stationShare = '0%',
+  shopLabel = 'STATION SHOP',
+  shopSubLabel = 'RELEASES, MERCH',
+  fanClubLabel = 'FANSOCIETY',
+  fanClubSubLabel = 'FANPINS, GENERATIONS',
+  factoryLabel = 'FACTORY',
+  factoryNotes = ['STATION | ARTIST — THE RATE', 'NEW CONTRACTS INHERIT TODAY.'],
+  inheritanceLabel = 'COPIED IN AT DEPLOY - IMMUTABLE, UNCHANGEABLE',
+  ownershipLabel = "THE ARTIST'S OWN CONTRACTS",
+  settlementNotes = ['EVERY SALE SETTLES AGAINST THE COPY', 'THE CONTRACT WAS DEPLOYED WITH.'],
+  footnotes = [
+    "THE FACTORY'S RATE MAY RISE FOR CONTRACTS DEPLOYED LATER.",
+    'IT CANNOT ALTER THE TERMS OF CONTRACTS THAT ARE ALREADY DEPLOYED.',
+  ],
+  keyLine = 'SOLID LINES CARRY MONEY. THE DASHED LINE CARRIES THE SPLIT. THE HAIRLINE BOX IS WHAT THE ARTIST OWNS.',
+  caption = 'rev share inheritance — testnet, paseo asset hub',
+  showSplit = true,
+  class: className,
+} = Astro.props;
+
+// the split each deployed contract carries, shown inside its box
+const inheritedRate = `${stationShare} | ${artistShare}`;
+
+// column centres: shop and fan club, and the two split destinations beneath them
+const SHOP_X = 718;
+const CLUB_X = 958;
+const MID_X = 838;
+---
+
+<figure class:list={['rsi-plate', className]}>
+  <svg viewBox="0 0 1248 760" role="img" aria-label={caption}>
+    <defs>
+      <marker id="rsiArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#ffffff" />
+      </marker>
+      <marker id="rsiArrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#adebb3" />
+      </marker>
+      <marker id="rsiArrowDim" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#8a8a8a" />
+      </marker>
+    </defs>
+
+    <text x="32" y="56" class="rsi-axis">{keyLine}</text>
+
+    <!-- the factory: one number, read at deploy time -->
+    <text x="348" y="80" class="rsi-tick" text-anchor="end">DEPLOY TIME — ONCE</text>
+    <rect x="108" y="96" width="240" height="72" fill="none" stroke="#ffffff" stroke-opacity="0.62" />
+    <text x="228" y="124" class="rsi-label" text-anchor="middle">{factoryLabel}</text>
+    <text x="228" y="152" class="rsi-mint" text-anchor="middle">{currentRate}</text>
+    {factoryNotes.map((n, i) => (
+      <text x="348" y={196 + i * 22} class="rsi-axis" text-anchor="end">{n}</text>
+    ))}
+
+    <!-- the rate leaves at the height of the number it carries, and never returns -->
+    <text x="1048" y="136" class="rsi-mint" text-anchor="end">{inheritanceLabel}</text>
+    <g fill="none" stroke="#adebb3" stroke-width="2" stroke-dasharray="2 6">
+      <path d="M348 148 H918" />
+      <path d="M678 148 V252" marker-end="url(#rsiArrowMint)" />
+      <path d="M918 148 V252" marker-end="url(#rsiArrowMint)" />
+    </g>
+
+    <g class="rsi-tick" text-anchor="middle">
+      <text x="758" y="192">A FAN PAYS</text>
+      <text x="998" y="192">A FAN PAYS</text>
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      <path d="M758 204 V252" marker-end="url(#rsiArrow)" />
+      <path d="M998 204 V252" marker-end="url(#rsiArrow)" />
+    </g>
+
+    <rect x="604" y="232" width="468" height="144" fill="none" stroke="#ffffff" stroke-opacity="0.16" />
+    <text x="568" y="246" class="rsi-tick" text-anchor="end">{ownershipLabel}</text>
+
+    <text x="1216" y="300" class="rsi-tick" text-anchor="end">SELLING</text>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      <rect x="628" y="256" width="180" height="96" />
+      <rect x="868" y="256" width="180" height="96" />
+    </g>
+    <g class="rsi-label" text-anchor="middle">
+      <text x={SHOP_X} y="286">{shopLabel}</text>
+      <text x={CLUB_X} y="286">{fanClubLabel}</text>
+    </g>
+    <g class="rsi-axis" text-anchor="middle">
+      <text x={SHOP_X} y="310">{shopSubLabel}</text>
+      <text x={CLUB_X} y="310">{fanClubSubLabel}</text>
+    </g>
+    <g class="rsi-mint" text-anchor="middle">
+      <text x={SHOP_X} y="336">{inheritedRate}</text>
+      <text x={CLUB_X} y="336">{inheritedRate}</text>
+    </g>
+
+    <!-- money: both contracts pool, then split from one junction -->
+    {showSplit && (
+      <g>
+        <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+          <path d={`M${SHOP_X} 356 V470`} />
+          <path d={`M${CLUB_X} 356 V470`} />
+          <path d={`M${SHOP_X} 470 H${CLUB_X}`} />
+          <path d={`M${MID_X} 470 V500`} />
+          <path d={`M${MID_X} 500 H${SHOP_X} V552`} marker-end="url(#rsiArrow)" />
+          <rect x="628" y="556" width="180" height="72" />
+          <rect x="868" y="556" width="180" height="72" />
+        </g>
+        <path
+          d={`M${MID_X} 500 H${CLUB_X} V552`}
+          fill="none"
+          stroke="#ffffff"
+          stroke-opacity="0.32"
+          marker-end="url(#rsiArrowDim)"
+        />
+        <text x="1216" y="596" class="rsi-tick" text-anchor="end">THE SPLIT</text>
+        <g class="rsi-label" text-anchor="middle">
+          <text x={SHOP_X} y="586">ARTIST</text>
+          <text x={CLUB_X} y="586">STATION</text>
+          <text x={SHOP_X} y="610">{artistShare}</text>
+          <text x={CLUB_X} y="610">{stationShare}</text>
+        </g>
+        {settlementNotes.map((n, i) => (
+          <text x="568" y={586 + i * 22} class="rsi-axis" text-anchor="end">{n}</text>
+        ))}
+      </g>
+    )}
+
+    {footnotes.map((n, i) => (
+      <text x="1048" y={700 + i * 22} class="rsi-axis" text-anchor="end">{n}</text>
+    ))}
+  </svg>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .rsi-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+  }
+  .rsi-plate svg {
+    width: 100%;
+    display: block;
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .rsi-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+  .rsi-tick  { fill: #8a8a8a; font-size: 11px; letter-spacing: 2px; }
+  .rsi-label { fill: #ffffff; font-size: 11px; letter-spacing: 2px; }
+  .rsi-mint  { fill: #adebb3; font-size: 11px; letter-spacing: 2px; }
+  .rsi-axis  { fill: #5a5a5a; font-size: 11px; letter-spacing: 2.4px; }
+</style>

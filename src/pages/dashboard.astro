@@ -1,0 +1,305 @@
+---
+import { Image } from 'astro:assets';
+import Page from '../layouts/Page.astro';
+
+import catalog from '../assets/Catalog.png';
+import newRelease from '../assets/NewRelease.png';
+import storefront from '../assets/Storefront.png';
+import fanClub from '../assets/FanClub.png';
+import treasury from '../assets/Treasury.png';
+import settings from '../assets/Settings.png';
+
+const features = [
+	{
+		id: 'catalog',
+		eyebrow: 'Catalog',
+		title: 'Who hears what, and when',
+		shot: catalog,
+		alt: 'The Catalog page of the Station artist dashboard, showing an album with fan club access and public release settings.',
+		lede: 'Everything you have published, and the controls that decide who can reach it.',
+		body: [
+			'Each album carries its status on its sleeve: Published once it has access rules and is discoverable, Staged until then. A price badge appears if it is sold as an on-chain product, and an orange warning appears if it has no purchase path at all — priced neither per album nor by your universal track price.',
+			'Access is built from generation groups. Pick which Fan Club generations a group covers, the date access opens, and whether streaming is free or paid for them. Stack several groups to stagger a release: your earliest supporters stream free today, a later generation gets in next month, and public release is an optional final tier you can leave switched off entirely.',
+			'Any track can override its album. A per-track rule fully replaces the album settings for that track, which is how you put a single out early or keep a bonus cut fan-only.',
+		],
+	},
+	{
+		id: 'new-release',
+		eyebrow: 'New Release',
+		title: 'Publishing, with the metadata that matters',
+		shot: newRelease,
+		alt: 'The New Release form of the Station artist dashboard, showing album details and cover upload.',
+		lede: 'Create an album, fill in its details, upload the tracks.',
+		body: [
+			'MP3, FLAC or WAV up to 100 MB a file. Station reads each file\'s title, duration, sample rate and bit depth off the file itself and shows them on the track row. Drag to reorder, click a title to rename, add per-track artwork if a track deserves its own.',
+			'The metadata is the real kind, not a placeholder set: release type, primary and secondary genre, release and pre-order dates, label, sound-recording and publishing copyright lines, UPC and ISRC codes with validation, language, explicit advisories per album and per track, featured artists, and lyrics.',
+			'A new release starts closed to every audience. Nothing publishes by accident — you set access in the Catalog when you are ready.',
+		],
+	},
+	{
+		id: 'storefront',
+		eyebrow: 'Storefront',
+		title: 'Selling, renting, and getting paid',
+		shot: storefront,
+		alt: 'The Storefront page of the Station artist dashboard, showing track and album pricing controls.',
+		lede: 'One on-chain shop contract, deployed once, that every purchase flows through.',
+		body: [
+			'Set a universal track price that applies to every single-track purchase, then price albums individually — each priced album becomes its own on-chain product you can edit, activate, or take off sale. Price in the chain\'s native token, and in a stablecoin on chains that support one.',
+			'Rentals sit between giving music away and gating it behind a purchase: one rental price and one duration, in hours or days, applied across your albums. Stream-only, and it closes on its own. Enable it or pause it whenever.',
+			'Earnings collect in your contract until you withdraw them, and you can export an income statement as CSV for your records. It is an income statement, not a tax document.',
+		],
+	},
+	{
+		id: 'fan-club',
+		eyebrow: 'Fan Club',
+		title: 'Generations, and the people in them',
+		shot: fanClub,
+		alt: 'The Fan Club page of the Station artist dashboard, showing FanPin generations and supporters.',
+		lede: 'Your Fan Club runs on the FanSociety protocol and integrates with your Catalog natively.',
+		body: [
+			'Create a generation with a token fee, artwork, and whatever description you want. It becomes the active generation — the one new fans mint — and stays open until you create the next one, at which point that cohort is sealed permanently.',
+			'FanPin History lists every generation newest first, each with its artwork, fee, description and mint count. Open one and you get the supporter list: who minted it, what they paid, when, and a link to the transaction on a block explorer.',
+			'What a FanPin unlocks is entirely your call — early release windows for one generation or several, bonus tracks only holders can stream, or nothing at all. The Catalog is where you decide.',
+		],
+	},
+	{
+		id: 'treasury',
+		eyebrow: 'Treasury',
+		title: 'Optional, advanced money management',
+		shot: treasury,
+		alt: 'The Treasury page of the Station artist dashboard, showing balances and withdrawal controls.',
+		lede: 'A single address you control that pools revenue from the Fan Club and the Storefront.',
+		body: [
+			'Without a treasury, revenue is paid straight to your wallet. Add one when you want a single pooled balance — to pay bandmates or a label out of one place, or to move to shared multi-signature control later.',
+			'Your connected wallet becomes the owner, and only the owner can withdraw. You can transfer ownership to a multisig later without changing the treasury address. It holds the native token and any accepted stablecoins, and withdrawing stablecoins sweeps every balance at once.',
+		],
+		warn: 'The owner account is the only account that can ever withdraw. Lose your wallet\'s recovery phrase and the funds stay locked in the contract forever — Station cannot recover them, and neither can anyone else.',
+	},
+	{
+		id: 'settings',
+		eyebrow: 'Settings',
+		title: 'Your identity, and your node\'s vitals',
+		shot: settings,
+		alt: 'The Settings page of the Station artist dashboard, showing artist profile and node information.',
+		lede: 'The public half is your profile. The rest is the machine.',
+		body: [
+			'Display name, namespace, avatar, bio and social links make up what fans see. Your namespace is claimed on the network when you save it, and once confirmed it is permanent — your display name is separate and always stays yours.',
+			'Node Information is a live read-only view: network status, Peer ID, domain, connected peers, DHT status and routing table size. It is the fastest way to confirm your server is online and discoverable.',
+			'Below that sit the parts most dashboards hide. An ordered list of blockchain RPC endpoints you can reorder, test, disable, or extend with your own, applied live with no restart. Update preferences — automatic via Watchtower, notify only, or off — with the exact commands shown when a release is ready. And a cap on how many devices a single fan can be signed in on at once.',
+		],
+	},
+];
+---
+
+<Page
+	slug="dashboard"
+	description="The Station artist dashboard: catalog and access control, publishing with real metadata, an on-chain storefront and fan club, treasury, and node settings. All of it running on your own server behind your own login."
+	lede="Six pages, on a server you own, behind a login only you hold. This is the whole of what running a Station actually looks like day to day."
+>
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Getting around</p>
+			<h2>An icon rail and one decision</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p>
+						Navigation is the icon rail down the left — Dashboard, Catalog, New Release, Storefront,
+						Fan Club, Treasury, Settings, with a light and dark toggle at the bottom. Hover any icon
+						for its label.
+					</p>
+					<p>
+						The Dashboard itself is the home screen: album and track counts, wallet status, and once
+						you have taken any money, a revenue overview and a chronological transaction log with
+						every sale, mint, rental and withdrawal linked to a block explorer.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						The first time you open a new server it asks you to <strong>choose your chain</strong> —
+						the network your Fan Club, Storefront and Treasury contracts will deploy to. You can change
+						it in Settings right up until your first contract is deployed, after which it is locked,
+						because your contracts live there.
+					</p>
+					<p>
+						Streaming your music needs none of this. The chain only matters once you want to be paid.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	{
+		features.map((f, i) => (
+			<section class="section feature" id={f.id}>
+				<div class="wrap">
+					<div class:list={['layout', { flip: i % 2 === 1 }]}>
+						<div class="copy">
+							<p class="eyebrow">{f.eyebrow}</p>
+							<h2>{f.title}</h2>
+							<div class="prose">
+								<p class="lede">{f.lede}</p>
+								{f.body.map((p) => (
+									<p>{p}</p>
+								))}
+							</div>
+							{f.warn && (
+								<aside class="warn">
+									<span class="stamp">no recovery</span>
+									<p>{f.warn}</p>
+								</aside>
+							)}
+						</div>
+
+						<figure class="shot">
+							<Image
+								src={f.shot}
+								alt={f.alt}
+								widths={[480, 700, 1000, 1400]}
+								sizes="(max-width: 62rem) 100vw, 700px"
+								loading="lazy"
+								decoding="async"
+							/>
+							<figcaption>artist dashboard — {f.eyebrow.toLowerCase()}</figcaption>
+						</figure>
+					</div>
+				</div>
+			</section>
+		))
+	}
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Deploy order</p>
+			<h2>One choice that can't be undone</h2>
+
+			<div class="prose">
+				<p class="lede">
+					When you deploy your Fan Club or Storefront, you choose where their revenue is paid —
+					your wallet, or your Treasury. That choice is permanent.
+				</p>
+				<p>
+					So if you want revenue pooling in a treasury, <strong>deploy the treasury first</strong> and
+					select it as the payee when you deploy the other two. Already sent one straight to your wallet?
+					That payee can't be changed; you would need to redeploy that contract to reroute it.
+				</p>
+			</div>
+		</div>
+	</section>
+</Page>
+
+<style>
+	.prose p {
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.prose p + p {
+		margin-top: 1.1rem;
+	}
+
+	.prose .lede {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	.prose strong {
+		color: var(--white);
+		font-weight: 500;
+	}
+
+	h2 + .two,
+	h2 + .prose {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+	}
+
+	.two {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: start;
+	}
+
+	/* ---- alternating feature blocks ---------------------------------- */
+
+	.feature {
+		border-top: 1px solid var(--rule);
+	}
+
+	.layout {
+		display: grid;
+		grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+		gap: clamp(1.75rem, 4.5vw, 3.5rem);
+		align-items: start;
+	}
+
+	/* Flip every other block so the page doesn't march down one edge. */
+	.layout.flip .copy {
+		order: 2;
+	}
+
+	.copy h2 {
+		max-width: 14ch;
+	}
+
+	.copy .prose {
+		margin-top: clamp(1.5rem, 3vw, 2rem);
+	}
+
+	.warn {
+		display: flex;
+		gap: 1rem;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		margin-top: clamp(1.75rem, 3.5vw, 2.25rem);
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--mint-rule);
+	}
+
+	.warn p {
+		flex: 1;
+		min-width: 15rem;
+		font-size: 0.8rem;
+		line-height: 1.7;
+		color: var(--gray);
+	}
+
+	.shot {
+		border: 1px solid var(--rule);
+		background: var(--black);
+		position: sticky;
+		top: clamp(4.5rem, 9vh, 6rem);
+	}
+
+	/* :global because <Image> renders the <img> outside this component's scope. */
+	.shot :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.shot figcaption {
+		font-size: 0.65rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		padding: 0.75rem 0.9rem;
+		border-top: 1px solid var(--rule);
+	}
+
+	@media (max-width: 62rem) {
+		.layout {
+			grid-template-columns: 1fr;
+		}
+
+		/* Screenshot first on narrow screens, whichever side it sits on wide. */
+		.layout .shot {
+			order: -1;
+			position: static;
+		}
+
+		.layout.flip .copy {
+			order: 0;
+		}
+	}
+</style>

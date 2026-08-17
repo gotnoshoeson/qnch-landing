@@ -1,0 +1,365 @@
+---
+import Page from '../layouts/Page.astro';
+
+const notDoing = [
+	{
+		name: 'No ban',
+		body: 'There is no rule against hosting AI-generated music on a Station server, because there is no mechanism by which we could enforce one. Your server is yours.',
+	},
+	{
+		name: 'No detector',
+		body: 'We do not run classifiers over uploaded audio. Detection is an arms race against tools that improve monthly, and the side doing the detecting is always a step behind.',
+	},
+	{
+		name: 'No labels',
+		body: 'No mandatory disclosure field, no badge, no "AI-assisted" checkbox. A field like that is only as honest as whoever fills it in, and it invites the wrong argument about where assistance ends.',
+	},
+	{
+		name: 'No appeals process',
+		body: 'Which follows from the rest. Nothing is being judged, so there is nothing to appeal, and no queue for a human artist to sit in while somebody decides whether they are real.',
+	},
+];
+
+const surfaces = [
+	{ platform: 'Editorial and algorithmic playlists', station: 'Search a namespace you were given' },
+	{ platform: 'Autoplay after the record ends', station: 'Open a link somebody sent you' },
+	{ platform: 'Charts, trending, new releases', station: '—' },
+	{ platform: 'Browse pages and genre hubs', station: '—' },
+	{ platform: 'Home feed and recommendations', station: '—' },
+];
+---
+
+<Page
+	slug="ai"
+	description="Station has no recommendation engine, so AI-generated music has no surface to arrive through. We don't ban it and we don't try to detect it — the same property that prevents that is what stops anyone removing your music too."
+	lede="We don't have a policy on AI music. We have a structure that means you never get handed it without asking — and the reason we can't police it is the same reason nobody can police you."
+>
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The short version</p>
+			<h2>An absence, not a policy</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						The worry isn't really that AI music exists. It's being handed it without knowing —
+						slipped between two human artists on a service you pay for.
+					</p>
+					<p>
+						That requires a delivery surface. Something that picks the next track for you and has a
+						reason to prefer one over another. Station doesn't have one.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						So the answer isn't a rule we enforce, it's a thing we never built. Anyone can pay to
+						generate AI music and host it on a server they own. Anyone can pay to listen to it.
+						Neither is ours to police — and neither reaches you unless you go looking.
+					</p>
+				</div>
+			</div>
+
+			<h3 class="sub">Where music can arrive from</h3>
+
+			<div class="table" role="table" aria-label="Delivery surfaces compared">
+				<div class="thead" role="row">
+					<span role="columnheader">A streaming platform</span>
+					<span role="columnheader" class="ours">Station</span>
+				</div>
+				{
+					surfaces.map((s) => (
+						<div class="trow" role="row">
+							<span role="cell">{s.platform}</span>
+							<span role="cell" class:list={['ours', { none: s.station === '—' }]}>
+								{s.station}
+							</span>
+						</div>
+					))
+				}
+			</div>
+
+			<p class="table-note">
+				Five ways in on one side, two on the other — and both of the remaining two require a person
+				to have acted first.
+			</p>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">What we don't do</p>
+			<h2>Four things we deliberately skipped</h2>
+
+			<dl class="rows">
+				{
+					notDoing.map((n) => (
+						<div class="row">
+							<dt>{n.name}</dt>
+							<dd>{n.body}</dd>
+						</div>
+					))
+				}
+			</dl>
+
+			<div class="prose gap">
+				<p>
+					The false positive is the part people underrate. A detector that wrongly flags a human
+					musician does more damage than one that misses AI entirely — it takes someone who made
+					something and tells them, with the authority of a system, that they didn't. Every platform
+					that has tried this at scale has produced that outcome, and there is no appeals queue long
+					enough to fix it.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The real reason</p>
+			<h2>The rule that spares them is the one that protects you</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						Suppose we did want to remove AI music from the network. What would that take?
+					</p>
+					<p>
+						It would take the ability to reach into a server we don't own and delete files we didn't
+						put there. A switch that takes somebody's catalog offline because we decided it should
+						be offline.
+					</p>
+					<p>
+						That switch doesn't exist. Not because we chose restraint, but because
+						<a href="/discovery">the architecture never gave anyone one</a> — your music sits on
+						your machine, your catalog is served by your node, and the network only ever learns
+						where to find you.
+					</p>
+				</div>
+
+				<aside class="pull">
+					<blockquote>Any power we'd need to remove their music is a power we'd have over yours.</blockquote>
+					<p class="note">
+						A platform that can enforce a taste policy is a platform that can enforce any policy,
+						against anyone, whenever its incentives change. The absence of that capability isn't a
+						gap in the product. It's the product.
+					</p>
+				</aside>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Where it lands</p>
+			<h2>On the listener, on purpose</h2>
+
+			<div class="prose wide">
+				<p>
+					Somebody has to decide what's worth hearing. On a platform that's a model, tuned to
+					objectives you can't see and wouldn't be told about. Here it's you, and the people whose
+					taste you already trust — the critic, the DJ, the blog, the friend who sends links.
+				</p>
+				<p>
+					That's more work. It's also the thing that was taken, and the reason
+					<a href="/discovery">the space where those people operate</a> was left empty rather than filled
+					in with a better algorithm.
+				</p>
+			</div>
+
+			<aside class="callout">
+				<span class="stamp">what we can't promise</span>
+				<p>
+					Station isn't a room with no AI in it, and we won't pretend otherwise. Somebody can
+					generate music, host it on their own node, claim a namespace, and sell it — and none of
+					that is within our reach. What we can tell you is that you'll only ever find it by going
+					and looking for it.
+				</p>
+			</aside>
+		</div>
+	</section>
+</Page>
+
+<style>
+	.prose p {
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.prose p + p {
+		margin-top: 1.1rem;
+	}
+
+	.prose .lede {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	.prose a {
+		color: var(--mint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.prose a:hover {
+		border-bottom-color: var(--mint);
+	}
+
+	.wide p {
+		max-width: 68ch;
+	}
+
+	.gap {
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	h2 + .two,
+	h2 + .prose {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+	}
+
+	.two {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: start;
+	}
+
+	/* ---- delivery surfaces table ------------------------------------- */
+
+	.sub {
+		margin-top: clamp(3rem, 6vw, 4.5rem);
+	}
+
+	.table {
+		margin-top: clamp(1.5rem, 3vw, 2rem);
+		border-top: 1px solid var(--rule);
+	}
+
+	.thead,
+	.trow {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: 0.9rem 0;
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.thead span {
+		font-size: 0.62rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.thead .ours {
+		color: var(--mint);
+	}
+
+	.trow span {
+		font-size: 0.85rem;
+		line-height: 1.6;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.trow .ours {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	/* The em dash rows are the argument — dim them so the gap reads visually. */
+	.trow .ours.none {
+		color: var(--gray-dim);
+	}
+
+	.table-note {
+		margin-top: 1.25rem;
+		font-size: 0.8rem;
+		line-height: 1.7;
+		color: var(--gray);
+		max-width: 58ch;
+	}
+
+	/* ---- what we don't do -------------------------------------------- */
+
+	.rows {
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.row {
+		display: grid;
+		grid-template-columns: minmax(8rem, 16rem) 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: 1.35rem 0;
+		border-top: 1px solid var(--rule);
+		align-items: baseline;
+	}
+
+	.row:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	dt {
+		font-family: var(--display);
+		font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+		text-transform: uppercase;
+		letter-spacing: -0.02em;
+		line-height: 1;
+		color: var(--mint);
+	}
+
+	dd {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+		max-width: var(--measure);
+	}
+
+	/* ---- pulled quote -------------------------------------------------- */
+
+	.pull blockquote {
+		font-family: var(--display);
+		font-size: clamp(1.4rem, 3.4vw, 2.2rem);
+		line-height: 1.02;
+		letter-spacing: -0.025em;
+		text-transform: uppercase;
+		color: var(--mint);
+		border-left: 4px solid var(--mint);
+		padding-left: clamp(0.9rem, 2vw, 1.4rem);
+		max-width: 20ch;
+	}
+
+	.pull .note {
+		margin-top: 1.5rem;
+		font-size: 0.82rem;
+		line-height: 1.75;
+		color: var(--gray);
+		max-width: 46ch;
+	}
+
+	/* ---- closing callout ----------------------------------------------- */
+
+	.callout {
+		display: flex;
+		gap: clamp(1rem, 3vw, 2rem);
+		flex-wrap: wrap;
+		align-items: flex-start;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+		padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--mint-rule);
+	}
+
+	.callout p {
+		flex: 1;
+		min-width: 18rem;
+		font-size: 0.82rem;
+		line-height: 1.75;
+		color: var(--gray);
+		max-width: 58ch;
+	}
+
+	@media (max-width: 40rem) {
+		.row {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+		}
+	}
+</style>

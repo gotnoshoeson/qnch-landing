@@ -1,0 +1,374 @@
+---
+import Page from '../layouts/Page.astro';
+import NetworkArchitectureDiagram from '../components/NetworkArchitectureDiagram.astro';
+import StaticDivider from '../components/StaticDivider.astro';
+
+const parts = [
+	{
+		n: '01',
+		name: 'Station',
+		role: 'the service',
+		body: "The software you run on your own server. It holds your music, your catalog, your storefront, your fan club and your treasury, and serves all of it from a machine you pay for and nobody else can reach into. One command installs it; the whole thing takes about ten minutes.",
+		note: 'Self-hosting, without the part where you also have to build a website.',
+	},
+	{
+		n: '02',
+		name: 'qnch',
+		role: 'the network',
+		body: 'DIY and platforms sit at opposite ends of one spectrum: self-hosting keeps your control and strands you on a website nobody visits, while a platform makes you findable and takes the rest in exchange. qnch is what lets you stand at both ends at once. There is nothing extra to run — it works inside Station, from the moment your server is up. Artist servers find each other on their own, so a fan can search your handle in one app and land on you, with no platform database in the middle.',
+		note: 'The network knows where to find you, not what you have. No central index, no central copy.',
+	},
+	{
+		n: '03',
+		name: 'FanSociety',
+		role: 'fan clubs',
+		body: 'A patronage service designed specifically for musicians and their fans. No subscriptions; instead, a one time donation gets you in the Fan Club and timestamps when you joined. Artists can use this information to give back to their fans in a number of ways.',
+		note: 'Gated access to albums and songs is a feature that is available from day one.',
+	},
+];
+
+const ownership = [
+	{ yours: 'The server, and the bill for it', ours: 'Resolving your namespace to your node' },
+	{ yours: 'The music files themselves', ours: '—' },
+	{ yours: 'Your catalog, your prices, your gating', ours: '—' },
+	{ yours: 'The address revenue is paid to', ours: '—' },
+	{ yours: 'Your namespace, once it is claimed', ours: '—' },
+	{ yours: 'Uptime', ours: '—' },
+];
+---
+
+<Page
+	slug="services"
+	description="Station is the server software, qnch is the network that ties every server together, and FanSociety is the fan club layer. Three separate services, no platform in the middle."
+	lede="Three separate things, each doing one job. None of them is a platform, and none of them stands between you and the people listening."
+>
+	<StaticDivider height={96} mint />
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The parts</p>
+			<h2>What each one does</h2>
+			<p class="lede intro">
+				They're built to work together, but they aren't one product wearing three names.
+			</p>
+
+			<ol class="parts">
+				{
+					parts.map((part) => (
+						<li class="part">
+							<span class="n" aria-hidden="true">
+								{part.n}
+							</span>
+							<div>
+								<div class="part-head">
+									<h3>{part.name}</h3>
+									<span class="role">{part.role}</span>
+								</div>
+								<p>{part.body}</p>
+								<p class="note">{part.note}</p>
+							</div>
+						</li>
+					))
+				}
+			</ol>
+		</div>
+	</section>
+
+	<StaticDivider height={48} />
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The shape</p>
+			<h2>Why this isn't a platform</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						You could already self-host your music without any of this. The reason very few do is
+						that it's not scalable.
+					</p>
+					<p>
+						Asking listeners to visit twenty different sites, with twenty different layouts, to hear
+						twenty different bands keeps DIY permanently niche. The convenience is real, and a
+						platform is what usually supplies it — at the price of sitting in the middle of every
+						transaction you'll ever make.
+					</p>
+				</div>
+
+				<div class="prose">
+					<p>
+						qnch supplies the convenience without occupying the middle. Your server is still yours;
+						it's just also a participant in a network that knows how to find it. Fans get one app and
+						one search box. You get the catalog, the prices, the money and the machine.
+					</p>
+					<p>
+						That's the whole trick, and it's the reason none of these three services needs to become
+						a company that owns your audience.
+					</p>
+				</div>
+			</div>
+
+			<NetworkArchitectureDiagram />
+
+			<aside class="callout">
+				<span class="stamp">worth noticing</span>
+				<p>
+					None of this is something you set up. Your node joins the network when the installer
+					finishes, and it announces your namespace the moment you save it. There's nothing to
+					configure, nobody to register with and nothing to keep an eye on — if your server is on,
+					you're on the network.
+				</p>
+			</aside>
+		</div>
+	</section>
+
+	<StaticDivider height={48} />
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Division of labour</p>
+			<h2>What's yours, and what isn't</h2>
+			<p class="sub-note">
+				The right-hand column is deliberately short. It's the entire list of things the network does
+				on your behalf.
+			</p>
+
+			<div class="table" role="table" aria-label="What you own versus what the network does">
+				<div class="thead" role="row">
+					<span role="columnheader">Yours</span>
+					<span role="columnheader" class="ours">The network's</span>
+				</div>
+				{
+					ownership.map((r) => (
+						<div class="trow" role="row">
+							<span role="cell">{r.yours}</span>
+							<span role="cell" class="ours">
+								{r.ours}
+							</span>
+						</div>
+					))
+				}
+			</div>
+		</div>
+	</section>
+
+	<StaticDivider height={48} />
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The trade</p>
+			<h2>Nobody else holds a copy</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p class="lede">
+						If your server is off, your music is unavailable. Not deleted — unavailable.
+					</p>
+					<p>
+						While your node is down, fans can't stream, buy or download from you. When it comes back,
+						everything resumes exactly where it was.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						That's the cost of owning your distribution outright: no one can take your music down,
+						and no one can keep it up for you either.
+					</p>
+					<p>
+						It's also the practical argument for a cheap VPS that stays on over a laptop that goes to
+						sleep. Uptime is now a thing you own.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<StaticDivider height={48} />
+</Page>
+
+<style>
+	.prose p {
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.prose p + p {
+		margin-top: 1.1rem;
+	}
+
+	.prose .lede {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	h2 + .two,
+	h2 + .prose {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+	}
+
+	.intro {
+		margin-top: 1.25rem;
+	}
+
+	.two {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: start;
+	}
+
+	/* ---- the three parts ---------------------------------------------- */
+
+	.parts {
+		list-style: none;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.part {
+		display: grid;
+		grid-template-columns: minmax(3.5rem, 7rem) 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: clamp(1.35rem, 3vw, 2rem) 0;
+		border-top: 1px solid var(--rule);
+		align-items: start;
+	}
+
+	.part:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.part .n {
+		font-family: var(--display);
+		font-size: clamp(1.75rem, 5vw, 3.25rem);
+		line-height: 0.8;
+		letter-spacing: -0.04em;
+		color: transparent;
+		-webkit-text-stroke: 1px var(--mint);
+		user-select: none;
+	}
+
+	.part-head {
+		display: flex;
+		align-items: baseline;
+		gap: 0.7rem;
+		flex-wrap: wrap;
+		margin-bottom: 0.9rem;
+		padding-bottom: 0.9rem;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.part h3 {
+		color: var(--mint);
+	}
+
+	.role {
+		font-size: 0.68rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.part p {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+		max-width: var(--measure);
+	}
+
+	.note {
+		margin-top: 0.9rem;
+		font-size: 0.75rem;
+		line-height: 1.55;
+		color: var(--gray);
+		border-left: 1px solid var(--mint-rule);
+		padding-left: 0.9rem;
+	}
+
+	/* The divider carries its own hairline, so the section it hands off to
+	   drops its top rule rather than stacking a second line against it.
+	   :global on the divider because the class sits on a child component. */
+	:global(.static-divider) + .section,
+	:global(.static-divider + .pager) {
+		border-top: 0;
+	}
+
+	/* ---- the diagram plate --------------------------------------------- */
+
+	/* :global because the plate is a child component's root element, so this
+	   component's scoping attribute never lands on it. */
+	.wrap :global(.na-plate) {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0;
+	}
+
+	/* ---- callout -------------------------------------------------------- */
+
+	.callout {
+		display: flex;
+		gap: clamp(1rem, 3vw, 2rem);
+		flex-wrap: wrap;
+		align-items: flex-start;
+		padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--mint-rule);
+	}
+
+	.callout p {
+		flex: 1;
+		min-width: 18rem;
+		font-size: 0.85rem;
+		line-height: 1.75;
+		color: rgba(255, 255, 255, 0.82);
+		max-width: 58ch;
+	}
+
+	/* ---- ownership table ------------------------------------------------ */
+
+	.sub-note {
+		margin-top: 0.9rem;
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: var(--gray);
+		max-width: 58ch;
+	}
+
+	.table {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--rule);
+	}
+
+	.thead,
+	.trow {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: 0.9rem 0;
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.thead span {
+		font-size: 0.62rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.thead .ours {
+		color: var(--mint);
+	}
+
+	.trow span {
+		font-size: 0.85rem;
+		line-height: 1.6;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.trow .ours {
+		color: var(--gray-dim);
+	}
+
+	@media (max-width: 40rem) {
+		.part {
+			grid-template-columns: 1fr;
+			gap: 0.6rem;
+		}
+	}
+</style>

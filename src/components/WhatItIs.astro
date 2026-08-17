@@ -1,19 +1,21 @@
 ---
+import SectionLink from './SectionLink.astro';
+
 const parts = [
 	{
 		name: 'Station',
 		role: 'the service',
-		body: "Each artists hosts their own music. Every artist is accessible through one modern streaming app. Artists get the benefits of a DIY setup without being isolated, fans get all of the DIY artists in one place instead of dozens of DIY websites.",
+		body: 'Each artist hosts their own music catalog.',
 	},
 	{
 		name: 'qnch',
 		role: 'the network',
-		body: "Each server is a participant of a peer-to-peer network. This network allows every artist to be discoverable without a large, expensive platform infrastructure company sitting between you and your fans.",
+		body: 'Each Station instance is a participant in a peer-to-peer network.',
 	},
 	{
 		name: 'FanSociety',
 		role: 'fan clubs',
-		body: "A crowdfunding and patronage service that focuses on awarding early supporters. It's integrated with Station so artists can use fan data to give special access to their music catalog on day one.",
+		body: 'A crowdfunding and patronage service, integrated natively with Station.',
 	},
 ];
 ---
@@ -42,11 +44,9 @@ const parts = [
 			}
 		</div>
 
-		<p class="margin-note">
-			Self-hosting captures more money at the cost of isolation.
-			20 websites to hear 20 bands. 
-			We solved the DIY conundrum; QNCH Network is what allows bands to DIY, together.
-		</p>
+		<p class="margin-note">The Sweet Spot for DIYing without being isolated</p>
+
+		<SectionLink slug="services" label="more about the three services" />
 	</div>
 </section>
 

@@ -1,0 +1,67 @@
+---
+import { bySlug } from '../data/sections';
+
+/**
+ * The landing page's route into a section's own page. Renders nothing when
+ * that page isn't built yet, so unfinished routes never get linked.
+ */
+interface Props {
+	slug: string;
+	/** Overrides the default "read the full <eyebrow>" label. */
+	label?: string;
+}
+
+const { slug, label } = Astro.props;
+const meta = bySlug(slug);
+const show = meta?.ready === true;
+---
+
+{
+	show && (
+		<a class="section-link" href={`/${meta!.slug}`}>
+			<span class="n">{meta!.n}</span>
+			<span class="text">{label ?? `read the full ${meta!.eyebrow.toLowerCase()}`}</span>
+			<span class="arrow" aria-hidden="true">
+				→
+			</span>
+		</a>
+	)
+}
+
+<style>
+	.section-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.7rem;
+		margin-top: clamp(2rem, 4vw, 2.75rem);
+		padding-top: 0.85rem;
+		border-top: 1px solid var(--mint-rule);
+		text-decoration: none;
+		font-size: 0.72rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--gray);
+		transition: color 0.15s ease, border-color 0.15s ease;
+	}
+
+	.section-link:hover,
+	.section-link:focus-visible {
+		color: var(--mint);
+		border-top-color: var(--mint);
+	}
+
+	.n {
+		font-family: var(--display);
+		letter-spacing: 0.02em;
+		color: var(--mint);
+	}
+
+	.arrow {
+		font-family: var(--mono);
+		transition: transform 0.15s ease;
+	}
+
+	.section-link:hover .arrow {
+		transform: translateX(0.25rem);
+	}
+</style>

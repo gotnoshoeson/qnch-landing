@@ -1,0 +1,172 @@
+---
+import Base from './Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { bySlug, neighbours } from '../data/sections';
+
+interface Props {
+	/** Must match a slug in src/data/sections.ts */
+	slug: string;
+	description: string;
+	lede?: string;
+	image?: string;
+}
+
+const { slug, description, lede, image } = Astro.props;
+
+const meta = bySlug(slug);
+if (!meta) throw new Error(`Page.astro: no section registered for slug "${slug}"`);
+
+const { prev, next } = neighbours(slug);
+---
+
+<Base title={`${meta.title} — qnch`} description={description} image={image}>
+	<Nav />
+
+	<main>
+		<header class="page-head">
+			<div class="wrap">
+				<span class="numeral" aria-hidden="true">{meta.n}</span>
+				<p class="eyebrow">{meta.eyebrow}</p>
+				<h1>{meta.title}</h1>
+				{lede && <p class="lede page-lede">{lede}</p>}
+			</div>
+		</header>
+
+		<slot />
+
+		<nav class="pager" aria-label="Section navigation">
+			<div class="wrap">
+				<a class="home" href="/">← back to the landing page</a>
+
+				<div class="siblings">
+					{
+						prev && (
+							<a class="sibling" href={`/${prev.slug}`}>
+								<span class="dir">← previous</span>
+								<span class="label">
+									<span class="n">{prev.n}</span> {prev.eyebrow}
+								</span>
+							</a>
+						)
+					}
+					{
+						next && (
+							<a class="sibling forward" href={`/${next.slug}`}>
+								<span class="dir">next →</span>
+								<span class="label">
+									<span class="n">{next.n}</span> {next.eyebrow}
+								</span>
+							</a>
+						)
+					}
+				</div>
+			</div>
+		</nav>
+	</main>
+
+	<Footer />
+</Base>
+
+<style>
+	.page-head {
+		position: relative;
+		padding: clamp(4rem, 10vw, 8rem) var(--gutter) clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	/* The page's own number, sized up from the landing-page treatment — here
+	   it's the page's identity rather than a marker in a scroll. */
+	.page-head .numeral {
+		font-size: clamp(5rem, 17vw, 15rem);
+		top: clamp(-2rem, -4vw, -3.5rem);
+	}
+
+	h1 {
+		font-family: var(--display);
+		font-weight: 400;
+		text-transform: uppercase;
+		letter-spacing: -0.035em;
+		line-height: 0.9;
+		font-size: clamp(2.5rem, 8vw, 6rem);
+		max-width: 16ch;
+		position: relative;
+	}
+
+	.page-lede {
+		margin-top: clamp(1.5rem, 3vw, 2.25rem);
+		max-width: 52ch;
+	}
+
+	.pager {
+		border-top: 1px solid var(--rule);
+		padding: clamp(2.5rem, 5vw, 4rem) var(--gutter);
+	}
+
+	.home {
+		display: inline-block;
+		font-size: 0.72rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--gray);
+		text-decoration: none;
+		margin-bottom: clamp(1.75rem, 3.5vw, 2.5rem);
+		transition: color 0.15s ease;
+	}
+
+	.home:hover,
+	.home:focus-visible {
+		color: var(--mint);
+	}
+
+	.siblings {
+		display: flex;
+		justify-content: space-between;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+	}
+
+	.sibling {
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+		text-decoration: none;
+		border-top: 1px solid var(--mint-rule);
+		padding-top: 0.9rem;
+		min-width: 12rem;
+		transition: border-color 0.15s ease;
+	}
+
+	.sibling.forward {
+		margin-left: auto;
+		text-align: right;
+	}
+
+	.sibling:hover,
+	.sibling:focus-visible {
+		border-top-color: var(--mint);
+	}
+
+	.dir {
+		font-size: 0.65rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.label {
+		font-family: var(--display);
+		font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+		text-transform: uppercase;
+		letter-spacing: -0.02em;
+		line-height: 1;
+		color: var(--white);
+	}
+
+	.sibling:hover .label {
+		color: var(--mint);
+	}
+
+	.n {
+		color: var(--mint);
+	}
+</style>

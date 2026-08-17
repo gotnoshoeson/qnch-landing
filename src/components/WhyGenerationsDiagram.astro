@@ -1,0 +1,258 @@
+---
+/**
+ * WhyGenerationsDiagram — the four patronage models considered before
+ * generations, and what each one sorts fans by.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * Three columns: the model on the left, a glyph encoding its structure in the
+ * middle, and the verdict on the right. The middle column of TEXT — "sorts fans
+ * by" — is the spine of the argument: wallet size, money and scarcity, nothing,
+ * arrival one fan at a time, arrival in cohorts. Read down that column and the
+ * conclusion follows on its own.
+ *
+ * Row order is deliberate and not alphabetical or chronological. Ranked fans
+ * sits last of the four because it is the near miss: it sorts by the right
+ * thing at a resolution nobody can administer. Putting it directly above the
+ * emphatic divider makes generations read as a resolution choice rather than a
+ * different value system. Do not reorder without re-reading the verdicts.
+ *
+ * Each glyph is bespoke, so the rows are literal markup rather than a loop —
+ * the encoding IS the content:
+ *   tiers          bar height = what you paid
+ *   limited supply a bounded run of pins, then a wall
+ *   everyone equal one undivided box, no internal structure at all
+ *   ranked fans    a tick per fan, numbered, running off past #4102
+ *   generations    a time axis cut into cohorts, 3 / 5 / 7 pins above it
+ *
+ * Only the generations row is mint. It is a group rather than a single element
+ * because it is the outcome the plate exists to argue for.
+ *
+ * Row bands are 146px apart, tops at 130 / 276 / 422 / 568 / 714. The divider
+ * above generations is white at 32% rather than 16% — the one emphatic rule.
+ */
+interface Row {
+  name: string;
+  subtitle: string;
+  sortsBy: string;
+  verdict: string[];
+}
+
+interface Props {
+  keyLine?: string;
+  modelHeader?: string;
+  sortsByHeader?: string;
+  tiers?: Row;
+  limitedSupply?: Row;
+  everyoneEqual?: Row;
+  rankedFans?: Row;
+  generations?: Row;
+  tierAmounts?: string[];
+  supplyNote?: string;
+  equalNote?: string;
+  /** Pins drawn above each cohort — one entry per generation. */
+  cohortPins?: number[];
+  caption?: string;
+  class?: string;
+}
+
+const {
+  keyLine = 'A COLLECTION OF HISTORICAL AND THEORETICAL PATRONAGE MODELS',
+  modelHeader = 'MODEL',
+  sortsByHeader = 'SORTS FANS BY',
+  tiers = {
+    name: 'TIERED SUPPORT',
+    subtitle: '$5, $25, $100 A MONTH',
+    sortsBy: 'WALLET SIZE',
+    verdict: ["PAYING MORE MEANS YOU'RE A BETTER OR", 'BIGGER FAN, POPPYCOCK.'],
+  },
+  limitedSupply = {
+    name: 'LIMITED-SUPPLY NFT',
+    subtitle: '500 MINTED, THEN CLOSED',
+    sortsBy: 'MONEY AND ARTIFICIAL SCARCITY',
+    verdict: ["YOU'RE EITHER IN OR YOU'RE OUT."],
+  },
+  everyoneEqual = {
+    name: 'EVERYONE EQUAL',
+    subtitle: 'NO DISTINCTION AT ALL',
+    sortsBy: 'NOTHING',
+    verdict: [
+      'DAY ONE AND LAST TUESDAY LOOK THE SAME.',
+      'THE ONE DISTINCTION FANS ALREADY MAKE,',
+      'THROWN AWAY.',
+    ],
+  },
+  rankedFans = {
+    name: 'RANKED FANS',
+    subtitle: 'FAN #1, FAN #2, FAN #3',
+    sortsBy: 'ARRIVAL — ONE FAN AT A TIME',
+    verdict: ['THE RIGHT THING TO SORT BY, AT A', 'RESOLUTION NOBODY CAN ADMINISTER.'],
+  },
+  generations = {
+    name: 'GENERATIONS',
+    subtitle: 'FANPINS, BY COHORT',
+    sortsBy: 'ARRIVAL — IN COHORTS',
+    verdict: [
+      'WHEN A FAN SHOWED UP, AT A RESOLUTION',
+      'THE ARTIST CHOOSES. WHAT THEY PAID DOES',
+      'NOT ENTER INTO IT.',
+    ],
+  },
+  tierAmounts = ['$5', '$25', '$100'],
+  supplyNote = 'NOBODY ELSE, EVER',
+  equalNote = 'ONE UNDIVIDED GROUP',
+  cohortPins = [3, 5, 7],
+  caption = 'why generations — four models considered, one kept',
+  class: className,
+} = Astro.props;
+
+// row band tops; every y below is bandTop + a fixed offset
+const BAND = [130, 276, 422, 568, 714];
+const NAME = 34;    // model name / sorts-by value
+const SUB = 56;     // subtitle / first verdict line
+const LINE = 22;    // verdict line spacing
+
+const LEFT = 32;    // model column
+const GLYPH = 300;  // glyph column
+const RIGHT = 740;  // verdict column
+
+// generations row: cohort segments on the time axis, and the pins above each
+const cohortEdges = [300, 380, 520, 690];
+const cohortCentres = cohortEdges.slice(0, -1).map((x, i) => (x + cohortEdges[i + 1]) / 2);
+const PIN_GAP = 18;
+const pins = cohortCentres.flatMap((cx, i) => {
+  const n = cohortPins[i] ?? 0;
+  const start = cx - ((n - 1) * PIN_GAP) / 2;
+  return Array.from({ length: n }, (_, k) => start + k * PIN_GAP);
+});
+
+const rankTicks = [300, 348, 396, 444, 492];
+const supplyPins = [300, 326, 352, 378, 404, 430, 456, 482, 508];
+---
+
+<figure class:list={['wg-plate', className]}>
+  <svg viewBox="0 0 1248 860" role="img" aria-label={caption}>
+    <defs>
+      <marker id="wgArrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="#adebb3" />
+      </marker>
+    </defs>
+
+    <text x={LEFT} y="56" class="wg-axis">{keyLine}</text>
+
+    <text x={LEFT} y="100" class="wg-tick">{modelHeader}</text>
+    <text x={RIGHT} y="100" class="wg-tick">{sortsByHeader}</text>
+
+    <g stroke="#ffffff" stroke-opacity="0.16">
+      <line x1="0" y1="130" x2="1248" y2="130" />
+      <line x1="0" y1="276" x2="1248" y2="276" />
+      <line x1="0" y1="422" x2="1248" y2="422" />
+      <line x1="0" y1="568" x2="1248" y2="568" />
+    </g>
+
+    <!-- tiered support: bar height is what you paid -->
+    <text x={LEFT} y={BAND[0] + NAME} class="wg-label">{tiers.name}</text>
+    <text x={LEFT} y={BAND[0] + SUB} class="wg-axis">{tiers.subtitle}</text>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      <rect x="300" y="194" width="48" height="20" />
+      <rect x="364" y="174" width="48" height="40" />
+      <rect x="428" y="154" width="48" height="60" />
+    </g>
+    <g class="wg-axis" text-anchor="middle">
+      {tierAmounts.map((amount, i) => (
+        <text x={324 + i * 64} y="232">{amount}</text>
+      ))}
+    </g>
+    <text x={RIGHT} y={BAND[0] + NAME} class="wg-tick">{tiers.sortsBy}</text>
+    {tiers.verdict.map((line, i) => (
+      <text x={RIGHT} y={BAND[0] + SUB + i * LINE} class="wg-axis">{line}</text>
+    ))}
+
+    <!-- limited supply: a bounded run, then a wall -->
+    <text x={LEFT} y={BAND[1] + NAME} class="wg-label">{limitedSupply.name}</text>
+    <text x={LEFT} y={BAND[1] + SUB} class="wg-axis">{limitedSupply.subtitle}</text>
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.62">
+      {supplyPins.map((cx) => <circle cx={cx} cy="330" r="5" />)}
+      <line x1="534" y1="308" x2="534" y2="352" stroke-width="2" />
+    </g>
+    <text x="548" y="334" class="wg-axis">{supplyNote}</text>
+    <text x={RIGHT} y={BAND[1] + NAME} class="wg-tick">{limitedSupply.sortsBy}</text>
+    {limitedSupply.verdict.map((line, i) => (
+      <text x={RIGHT} y={BAND[1] + SUB + i * LINE} class="wg-axis">{line}</text>
+    ))}
+
+    <!-- everyone equal: no internal structure at all -->
+    <text x={LEFT} y={BAND[2] + NAME} class="wg-label">{everyoneEqual.name}</text>
+    <text x={LEFT} y={BAND[2] + SUB} class="wg-axis">{everyoneEqual.subtitle}</text>
+    <rect x="300" y="462" width="300" height="40" fill="none" stroke="#ffffff" stroke-opacity="0.62" />
+    <text x="450" y="486" class="wg-axis" text-anchor="middle">{equalNote}</text>
+    <text x={RIGHT} y={BAND[2] + NAME} class="wg-tick">{everyoneEqual.sortsBy}</text>
+    {everyoneEqual.verdict.map((line, i) => (
+      <text x={RIGHT} y={BAND[2] + SUB + i * LINE} class="wg-axis">{line}</text>
+    ))}
+
+    <!-- ranked fans: a tick per fan, running off past #4102 -->
+    <text x={LEFT} y={BAND[3] + NAME} class="wg-label">{rankedFans.name}</text>
+    <text x={LEFT} y={BAND[3] + SUB} class="wg-axis">{rankedFans.subtitle}</text>
+    <g stroke="#ffffff" stroke-opacity="0.62">
+      {rankTicks.map((x) => <line x1={x} y1="612" x2={x} y2="632" />)}
+      <line x1="588" y1="612" x2="588" y2="632" />
+    </g>
+    <g class="wg-axis" text-anchor="middle">
+      {rankTicks.map((x, i) => <text x={x} y="650">{`#${i + 1}`}</text>)}
+      <text x="540" y="626">...</text>
+      <text x="588" y="650">#4102</text>
+    </g>
+    <text x={RIGHT} y={BAND[3] + NAME} class="wg-tick">{rankedFans.sortsBy}</text>
+    {rankedFans.verdict.map((line, i) => (
+      <text x={RIGHT} y={BAND[3] + SUB + i * LINE} class="wg-axis">{line}</text>
+    ))}
+
+    <!-- the one emphatic rule, and the one mint row -->
+    <line x1="0" y1="714" x2="1248" y2="714" stroke="#ffffff" stroke-opacity="0.32" />
+
+    <text x={LEFT} y={BAND[4] + NAME} class="wg-mint">{generations.name}</text>
+    <text x={LEFT} y={BAND[4] + SUB} class="wg-axis">{generations.subtitle}</text>
+    <g fill="#000000" stroke="#adebb3" stroke-width="2">
+      {pins.map((cx) => <circle cx={cx} cy="766" r="4" />)}
+    </g>
+    <g fill="none" stroke="#adebb3" stroke-width="2">
+      <path d="M300 790 H690" marker-end="url(#wgArrowMint)" />
+      {cohortEdges.slice(0, -1).map((x) => <line x1={x} y1="780" x2={x} y2="800" />)}
+    </g>
+    <g class="wg-mint" text-anchor="middle">
+      {cohortCentres.map((cx, i) => <text x={cx} y="818">{`GEN ${i + 1}`}</text>)}
+    </g>
+    <text x={RIGHT} y={BAND[4] + NAME} class="wg-tick">{generations.sortsBy}</text>
+    {generations.verdict.map((line, i) => (
+      <text x={RIGHT} y={BAND[4] + SUB + i * LINE} class="wg-axis">{line}</text>
+    ))}
+  </svg>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .wg-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+  }
+  .wg-plate svg {
+    width: 100%;
+    display: block;
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .wg-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+  .wg-tick  { fill: #8a8a8a; font-size: 11px; letter-spacing: 2px; }
+  .wg-label { fill: #ffffff; font-size: 11px; letter-spacing: 2px; }
+  .wg-mint  { fill: #adebb3; font-size: 11px; letter-spacing: 2px; }
+  .wg-axis  { fill: #5a5a5a; font-size: 11px; letter-spacing: 2.4px; }
+</style>

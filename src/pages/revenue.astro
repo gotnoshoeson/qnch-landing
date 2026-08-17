@@ -1,0 +1,640 @@
+---
+import Page from '../layouts/Page.astro';
+import RevShareInheritanceDiagram from '../components/RevShareInheritanceDiagram.astro';
+import RevShareCohortDiagram from '../components/RevShareCohortDiagram.astro';
+
+const traits = [
+	{
+		name: 'Low cost',
+		role: 'the fee',
+		body: 'Legacy payment services are another form of middle man that diminishes the ultimate income for artists.',
+		compare: {
+			themLabel: 'Card processor',
+			them: '2.9% + 30¢',
+			usLabel: 'Station',
+			us: '<$0.01',
+		},
+	},
+	{
+		name: 'Programmable',
+		role: 'the rules',
+		body: "Artist accounts carry special guarantees that can't get changed later. Smart contract accounts make the mission of minimally extractive a reality.",
+	},
+	{
+		name: 'Sovereign',
+		role: 'the control',
+		body: 'Smart contracts are not owned or managed by Station, they belong to the artists and live on a distributed system not owned by Station.',
+	},
+];
+
+const guarantees = [
+	{
+		name: 'Self-hosted infrastructure',
+		body: 'You choose what server provider you want to use and what location. You can even run on your own server if you have the bandwidth and know-how. No applications, registrations, etc.',
+	},
+	{
+		name: 'Peer-to-peer network',
+		body: 'Every Station instance is a participant in the network, so artists stay discoverable through each other instead of through a company running a directory.',
+	},
+	{
+		name: 'Public payments',
+		body: 'Payments settle on a decentralized network secured by the value held on it, not by any one company. Choose between native crypto currency and stablecoins, or both.',
+	},
+];
+---
+
+<Page
+	slug="revenue"
+	description="Every design decision for Station aims to maximize control for the artist and minimize the extraction from them. No promises, only guarantees. Yesterday's payment rails couldn't provide this guarantee so we're using tomorrow's payment technologies."
+	lede="Every design decision for Station aims to maximize control for the artist and minimize the extraction from them. No promises, only guarantees. Yesterday's payment rails couldn't provide this guarantee so we're using tomorrow's payment technologies."
+>
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Blockchain powered</p>
+			<h2>Built on the newest payment technology</h2>
+			<p class="lede intro">
+				Smart contract enabled blockchains are the only payment technology that can provide the
+				guarantees we're aiming for.
+			</p>
+
+			<div class="grid">
+				{
+					traits.map((trait, i) => (
+						<article class="trait">
+							<div class="trait-head">
+								<h3>{trait.name}</h3>
+								<span class="role">{trait.role}</span>
+							</div>
+							<p>{trait.body}</p>
+							{trait.compare && (
+								<div class="compare">
+									<span class="side">
+										<span class="side-label">{trait.compare.themLabel}</span>
+										<span class="side-value them">{trait.compare.them}</span>
+									</span>
+									<span class="vs">vs</span>
+									<span class="side">
+										<span class="side-label">{trait.compare.usLabel}</span>
+										<span class="side-value us">{trait.compare.us}</span>
+									</span>
+								</div>
+							)}
+							<span class="idx" aria-hidden="true">
+								{String(i + 1).padStart(2, '0')}
+							</span>
+						</article>
+					))
+				}
+			</div>
+
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The mechanism</p>
+			<h2>Where the money actually goes</h2>
+
+			<div class="prose">
+				<p class="lede">
+					Every Fan Club and Storefront contract you deploy has a payment splitter built into it.
+				</p>
+				<p>
+					When a fan mints a FanPin or buys a track, the payment lands in your contract and is
+					divided on the spot — your share, and Station's share, according to the split written into
+					that specific contract. Your share sits there until you withdraw it.
+				</p>
+				<p>
+					There's no invoice, no billing cycle, and no moment where Station holds your money and
+					passes some of it back. The division happens at payment time, inside a contract you own, on
+					a public ledger anyone can read. The splitter itself is
+					<a
+						href="https://docs.openzeppelin.com/contracts/4.x/api/finance#PaymentSplitter"
+						target="_blank"
+						rel="noopener noreferrer">OpenZeppelin's PaymentSplitter</a
+					> — audited, boring, and not something we invented.
+				</p>
+			</div>
+
+			<RevShareInheritanceDiagram />
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">The guarantee</p>
+			<h2>Your rate is locked when you deploy</h2>
+
+			<div class="two">
+				<div class="prose">
+					<p>
+						The split is written into your contract at deploy time. Station can change the rate it
+						offers <em>new</em> contracts. It cannot reach into a contract you've already deployed and
+						take a larger share.
+					</p>
+					<p>
+						That's a small sentence with a lot behind it, and it's easiest to see next to how the
+						rest of the industry works. A streaming platform sets its terms in an agreement, and
+						reserves the right to change that agreement. The rate an artist starts at is a rate the
+						platform can revisit whenever its business needs it to. There's no recourse, because
+						there's nothing to enforce — the terms live on the platform's side of the relationship,
+						and so does the ability to rewrite them.
+					</p>
+					<p>
+						Station isn't a platform in that sense. There's no agreement between us to revise,
+						because your split was never an agreement in the first place. It's a deployed artifact —
+						a number sitting in a contract you control. Our future intentions, funding pressures and
+						changes of heart are all irrelevant to it.
+					</p>
+				</div>
+
+				<aside class="pull">
+					<blockquote>
+						The protection isn't that we promise not to raise your rate. It's that we can't.
+					</blockquote>
+					<p class="note">
+						"We'll always treat artists fairly" is a cheap thing to say, and it's never been worth
+						much, because the party saying it is the same party that gets to decide later what it
+						meant. We'd rather not ask you to trust us.
+					</p>
+				</aside>
+			</div>
+		</div>
+	</section>
+
+	<section class="section invert">
+		<div class="wrap">
+			<div class="head">
+				<div>
+					<p class="eyebrow">Today</p>
+					<h2>0% to Station. 100% to you.</h2>
+				</div>
+				<span class="split" aria-label="zero percent to Station, one hundred percent to you">
+					<em>0%</em>
+					<span class="bar" aria-hidden="true"></span>
+					<em>100%</em>
+					<span class="split-key">station | you</span>
+				</span>
+			</div>
+
+			<div class="two">
+				<div class="prose">
+					<p>
+						This isn't a promotional rate or a free trial that converts later. There's no
+						introductory period and no expiry date. A contract deployed at 0% | 100% stays at 0% |
+						100% for as long as it exists. If you deploy in this round and Station's split is 5% |
+						95% in three years, yours is still 0% | 100%.
+					</p>
+				</div>
+				<div class="prose">
+					<p>
+						There's <strong>no schedule</strong> for rate changes and we're not going to pretend we have
+						one. What we can tell you is the shape of it: the first increase will be 1% | 99%, and increases
+						after that will follow the same pattern — small, incremental, and applied only to contracts
+						deployed after the change.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Early adopters</p>
+			<h2>You take the risk, you keep the better rate</h2>
+
+			<div class="prose">
+				<p>
+					This falls out of the design rather than being bolted on, and it's the fairest version of
+					early access we could come up with.
+				</p>
+				<p>
+					Deploying on Station today means betting on young software, a small network, and a project
+					still working out its own economics. That's a real risk, and it isn't one later artists will
+					take — by the time they arrive the thing will be proven, the network will be bigger, and the
+					ground will be more solid. They'll pay a slightly higher rate for that certainty.
+				</p>
+				<p>
+					The rule is the same for everyone: whatever the split is on the day you deploy is the split
+					you keep, permanently. Artists joining at 1% | 99% hold 1% | 99% even after the rate has
+					moved past them, exactly as you hold 0% | 100%. Nobody's rate follows the network up.
+				</p>
+			</div>
+
+			<RevShareCohortDiagram />
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">Sovereignty</p>
+			<h2>A robust hybrid system</h2>
+			<p class="lede intro">
+				Station was built so that artists don't need to depend on Station being a successful business
+				in order to keep running their own business. Station enables artists to 'DIY together' and
+				compete against large centralized platforms.
+			</p>
+
+			<dl class="rows">
+				{
+					guarantees.map((g) => (
+						<div class="row">
+							<dt>{g.name}</dt>
+							<dd>{g.body}</dd>
+						</div>
+					))
+				}
+			</dl>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="wrap">
+			<p class="eyebrow">For the curious</p>
+			<h2>A note on upgradeability</h2>
+
+			<div class="prose">
+				<p class="dim">
+					If "beacon proxy" means nothing to you, skip this — nothing in it affects your split.
+				</p>
+				<p>
+					Your contracts are deployed as beacon proxies: your proxy holds your state, and its logic
+					comes from an implementation contract named by a beacon. During launch Station owns that
+					beacon, so implementation bugs found early can be patched for contracts that are already
+					deployed, rather than leaving artists stranded on broken code. It's a transitional window,
+					not a permanent feature of the protocol.
+				</p>
+				<p>
+					Once the contracts have proven themselves, beacon ownership will be transferred to the zero
+					address. At that point nobody owns it and nobody can upgrade any of these contracts again —
+					not Station, and not whoever might come after Station.
+				</p>
+				<p>
+					Renouncing the beacon is a public transaction, so you don't have to take our word for when
+					it lands. You can check the beacon's owner yourself on <a
+						href="https://blockscout-testnet.polkadot.io"
+						target="_blank"
+						rel="noopener noreferrer">Blockscout</a
+					>.
+				</p>
+			</div>
+
+			<aside class="callout">
+				<span class="stamp">testnet live</span>
+				<p>
+					Station currently runs on Paseo Asset Hub, Polkadot's test network. The PAS tokens you'll
+					use are free from a faucet and worth nothing — they exist so you can deploy contracts, take
+					fake payments, and make mistakes without losing anything real. Mainnet hasn't launched yet.
+					When it does, the same flow moves real money, and a lost key means lost money.
+				</p>
+			</aside>
+
+			<p class="ask">
+				Plenty of this is unsettled. <a
+					href="https://t.me/+EwzB7vuSRZozYTEx"
+					target="_blank"
+					rel="noopener noreferrer">Join the Telegram</a
+				> and argue with the economics — the people building Station are in there.
+			</p>
+		</div>
+	</section>
+</Page>
+
+<style>
+	.prose p + p {
+		margin-top: 1.1rem;
+	}
+
+	.prose p {
+		color: rgba(255, 255, 255, 0.78);
+		font-size: 0.9rem;
+		line-height: 1.75;
+	}
+
+	.prose .lede {
+		color: rgba(255, 255, 255, 0.92);
+	}
+
+	.prose a {
+		color: var(--mint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.prose a:hover {
+		border-bottom-color: var(--mint);
+	}
+
+	.prose em {
+		font-style: normal;
+		color: var(--mint);
+	}
+
+	.prose strong {
+		color: var(--white);
+		font-weight: 500;
+	}
+
+	h2 + .prose,
+	h2 + .two {
+		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+	}
+
+	/* Columns following a lede need the same air the .rows list gets, since
+	   the h2 + .two rule above can't reach past the intro paragraph. */
+	.intro + .two {
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	/* :global because the plate is a child component's root element. It ships
+	   with margin: 0, so the page supplies the air around it. */
+	.wrap :global(.rsi-plate),
+	.wrap :global(.rs-plate) {
+		margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+	}
+
+	/* ---- blockchain traits: same plate grid as section 01 on the landing
+	   page, so the two read as the same device. ------------------------- */
+
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		gap: 1px;
+		background: var(--rule);
+		border: 1px solid var(--rule);
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.trait {
+		position: relative;
+		background: var(--black);
+		padding: clamp(1.5rem, 3vw, 2.25rem);
+	}
+
+	.trait-head {
+		display: flex;
+		align-items: baseline;
+		gap: 0.7rem;
+		flex-wrap: wrap;
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.trait h3 {
+		color: var(--mint);
+	}
+
+	.role {
+		font-size: 0.68rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.trait p {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+	}
+
+	/* Fee comparison, set as two figures rather than a sentence. Spans its own
+	   cell, centred, under a hairline. */
+	.compare {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: clamp(1rem, 3vw, 1.75rem);
+		flex-wrap: wrap;
+		margin-top: 1.35rem;
+		padding-top: 1.2rem;
+		border-top: 1px solid var(--rule);
+	}
+
+	.side {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.55rem;
+	}
+
+	.side-label {
+		font-size: 0.6rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+	}
+
+	.side-value {
+		font-family: var(--mono);
+		font-size: clamp(1rem, 0.9rem + 0.45vw, 1.3rem);
+		line-height: 1;
+	}
+
+	.them {
+		color: var(--gray);
+	}
+
+	.us {
+		color: var(--white);
+	}
+
+	.vs {
+		font-size: 0.6rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--gray-dim);
+		margin-top: 1.1rem;
+	}
+
+	.idx {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.9rem;
+		font-family: var(--display);
+		font-size: 0.9rem;
+		color: var(--gray-dim);
+		letter-spacing: 0.05em;
+	}
+
+	.two {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: start;
+	}
+
+	/* ---- the pulled quote ------------------------------------------- */
+
+	.pull blockquote {
+		font-family: var(--display);
+		font-size: clamp(1.4rem, 3.4vw, 2.2rem);
+		line-height: 1.02;
+		letter-spacing: -0.025em;
+		text-transform: uppercase;
+		color: var(--mint);
+		border-left: 4px solid var(--mint);
+		padding-left: clamp(0.9rem, 2vw, 1.4rem);
+		max-width: 22ch;
+	}
+
+	.pull .note {
+		margin-top: 1.5rem;
+		font-size: 0.82rem;
+		line-height: 1.75;
+		color: var(--gray);
+		max-width: 46ch;
+	}
+
+	/* ---- the inverted 0 | 100 block ---------------------------------- */
+
+	.invert {
+		background: var(--white);
+		color: var(--black);
+		border-top: 1px solid var(--black);
+	}
+
+	.invert .eyebrow {
+		color: #1c7f3e;
+	}
+
+	.invert .prose p {
+		color: rgba(0, 0, 0, 0.82);
+	}
+
+	.invert .prose strong {
+		color: var(--black);
+		font-weight: 700;
+	}
+
+	.head {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 2rem;
+		flex-wrap: wrap;
+		padding-bottom: clamp(1.75rem, 3.5vw, 2.5rem);
+		margin-bottom: clamp(2rem, 4vw, 3rem);
+		border-bottom: 2px solid var(--black);
+	}
+
+	.split {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		position: relative;
+		padding-bottom: 1.4rem;
+		transform: rotate(-1deg);
+	}
+
+	.split em {
+		font-family: var(--display);
+		font-style: normal;
+		font-size: clamp(2.25rem, 6vw, 4rem);
+		line-height: 0.85;
+		letter-spacing: -0.04em;
+	}
+
+	.split em:last-of-type {
+		color: #158a3f;
+	}
+
+	.bar {
+		width: 1px;
+		height: clamp(2rem, 5vw, 3.25rem);
+		background: var(--black);
+	}
+
+	.split-key {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		font-size: 0.62rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: rgba(0, 0, 0, 0.55);
+	}
+
+	/* ---- guarantee rows ---------------------------------------------- */
+
+	.intro {
+		margin-top: 1.25rem;
+	}
+
+	.rows {
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.row {
+		display: grid;
+		grid-template-columns: minmax(8rem, 16rem) 1fr;
+		gap: clamp(1rem, 4vw, 3rem);
+		padding: 1.35rem 0;
+		border-top: 1px solid var(--rule);
+		align-items: baseline;
+	}
+
+	.row:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	dt {
+		font-family: var(--display);
+		font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+		text-transform: uppercase;
+		letter-spacing: -0.02em;
+		line-height: 1;
+		color: var(--mint);
+	}
+
+	dd {
+		font-size: 0.85rem;
+		line-height: 1.7;
+		color: rgba(255, 255, 255, 0.78);
+		max-width: var(--measure);
+	}
+
+	/* ---- testnet callout + closer ------------------------------------ */
+
+	.callout {
+		display: flex;
+		gap: clamp(1rem, 3vw, 2rem);
+		flex-wrap: wrap;
+		align-items: flex-start;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+		padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
+		border-top: 1px solid var(--mint-rule);
+	}
+
+	.callout p {
+		flex: 1;
+		min-width: 18rem;
+		font-size: 0.82rem;
+		line-height: 1.75;
+		color: var(--gray);
+		max-width: 58ch;
+	}
+
+	.ask {
+		margin-top: clamp(2rem, 4vw, 2.75rem);
+		font-size: 0.85rem;
+		color: var(--gray);
+	}
+
+	.ask a {
+		color: var(--mint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mint-rule);
+	}
+
+	.ask a:hover {
+		border-bottom-color: var(--mint);
+	}
+
+	@media (max-width: 40rem) {
+		.row {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+		}
+	}
+</style>
