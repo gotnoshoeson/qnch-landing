@@ -1,0 +1,304 @@
+---
+/**
+ * NetworkArchitecturePlate — three-models plate, VERTICAL flow.
+ * Replaces NetworkArchitectureDiagram.astro (SVG).
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * ============================================================================
+ * THIS FILE HAS NO <style> BLOCK, NO CLASSES, AND NO CSS VARIABLES. ON PURPOSE.
+ * ============================================================================
+ * Two earlier attempts failed in the consuming site. First, a `<style>` block
+ * using an `na-` class prefix rendered with the PREVIOUS version's rules — shared
+ * names like .na-conn matched stale CSS while new names like .na-flow matched
+ * nothing, so the plate came out with a column-direction connector, no grid
+ * columns, no arrows and no width cap. Renaming every class to `nvp-` then
+ * produced completely unstyled markup, which proved the component's scoped
+ * `<style>` is not being applied in that site at all.
+ *
+ * Every visual rule is therefore an inline style attribute, and colours are
+ * literal rgba/hex rather than var(--rule) / var(--gray-dim). Inline styles
+ * cannot be overridden by a stale stylesheet, cannot fail to load, and do not
+ * depend on the host defining any tokens. If you refactor this into classes,
+ * you will reintroduce both bugs.
+ *
+ * WHAT THIS COSTS, AND HOW IT IS WORKED AROUND
+ * - No @container query. The notes/diagram split is a two-child flex-wrap
+ *   instead: notes `flex: 0 1 190px`, diagram `flex: 1 1 340px` capped at 340px.
+ *   With only two children there is no bad intermediate state — they are either
+ *   side by side or stacked. (A max-width cap is safe HERE for that reason; it
+ *   is NOT safe on a multi-item chain, where it can make the intended
+ *   arrangement unreachable.)
+ * - No ::before/::after. Each arrow is a positioned wrapper holding two divs:
+ *   a 1px line and a CSS-triangle head.
+ * - The vertical rule the SVG drew between notes and diagram is gone, since it
+ *   would need to become a top border when stacked.
+ *
+ * FLOW DIRECTION IS TOP TO BOTTOM — artist at the top, listener at the bottom.
+ * Each diagram is capped at 340px, so nothing here reflows at any viewport.
+ * Keep it narrow; do not "use the space".
+ *
+ * LINE CONVENTION
+ *   solid, pointing down  — audio, toward the listener
+ *   dashed, pointing up   — a name lookup, from the app back to what answers it
+ * Station's lookup is mint because the network is what answers it. Both bands
+ * point their lookup the same way so the two are directly comparable.
+ *
+ * BAND COMPOSITIONS, AND WHY
+ * Platform  three artists feed one box spanning the full width beneath them; the
+ *           funnel reading comes from that box's width. Database and servers are
+ *           stacked INSIDE it — the containment is the point.
+ * DIY       three parallel vertical paths that never meet, each ending in its own
+ *           site. The separateness IS the argument; do not join them.
+ * Station   each artist's ownership box runs VERTICALLY down its column, the qnch
+ *           box runs HORIZONTALLY across the three servers. They cross at right
+ *           angles rather than nesting, which is what states "this server is the
+ *           artist's AND a network participant". Keep the two boundaries visibly
+ *           distinct where they cross.
+ *
+ * Overlays are grid items placed in the same cells as the content and outset with
+ * negative margins. Grid permits the overlap; nothing is positioned against a
+ * guessed coordinate.
+ *
+ * KNOWN TRADEOFF vs THE SVG
+ * The column headers — ARTISTS / SERVERS / IN BETWEEN / THE LISTENER — are gone.
+ * They needed all three bands to share fixed column positions, which a flow
+ * layout gives up. "In between" asserted that the platform occupies the middle
+ * ground and the other two models leave it empty; that now lives only in the
+ * prose. To recover it, add one short line per band naming what sits between
+ * artist and listener — do not try to restore shared columns.
+ */
+interface Props {
+  artists?: string[];
+  platformTitle?: string;
+  platformSubtitle?: string;
+  platformNote?: string;
+  diyTitle?: string;
+  diySubtitle?: string;
+  diyNote?: string;
+  stationTitle?: string;
+  stationSubtitle?: string;
+  stationNote?: string;
+  databaseLabel?: string;
+  serversLabel?: string;
+  serverLabel?: string;
+  appLabel?: string;
+  oneAppLabel?: string;
+  networkLabel?: string;
+  searchLabel?: string;
+  audioLabel?: string;
+  caption?: string;
+  showDatabase?: boolean;
+  showNetwork?: boolean;
+  class?: string;
+}
+
+const {
+  artists = ['A', 'B', 'C'],
+  platformTitle = 'Centralized platform',
+  platformSubtitle = 'One company, one catalog',
+  platformNote = "Artists don't run a server. The platform does, and it takes a large cut for running the infrastructure, including the database that routes every request.",
+  diyTitle = 'DIY self-hosting',
+  diySubtitle = 'Every artist a website',
+  diyNote = 'The artist runs the server and the site. More control for the artist, worse experience for listeners.',
+  stationTitle = 'Station on qnch',
+  stationSubtitle = 'Novel hybrid model',
+  stationNote = 'Artist runs server. Maximum control for artists, maintain convenient access for listeners.',
+  databaseLabel = 'Content database',
+  serversLabel = 'Servers',
+  serverLabel = 'Server',
+  appLabel = 'App',
+  oneAppLabel = 'One app',
+  networkLabel = 'qnch network — every server is a participant',
+  searchLabel = 'Search artist',
+  audioLabel = 'Audio',
+  caption = 'network architecture — solid lines carry audio, dashed lines carry names, boxes mark what belongs to whom',
+  showDatabase = true,
+  showNetwork = true,
+  class: className,
+} = Astro.props;
+
+// inline style strings, named so the markup stays readable without CSS classes
+const HAIRLINE = 'rgba(255,255,255,0.62)';
+const FAINT = 'rgba(255,255,255,0.16)';
+const MINT = '#adebb3';
+
+const band = (ruled: boolean) =>
+  `display:flex;flex-wrap:wrap;gap:1.5rem 2rem;padding:1.75rem clamp(1rem,3vw,1.75rem)` +
+  (ruled ? `;border-top:1px solid ${FAINT}` : '');
+const notesCell = 'flex:0 1 190px;min-width:0';
+const flowCell = 'flex:1 1 340px;max-width:340px;min-width:0';
+const cols = `display:grid;grid-template-columns:repeat(${artists.length},minmax(0,1fr));gap:0 0.75rem`;
+
+const sName = 'font-size:0.72rem;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff;line-height:1.6';
+const sSub = 'font-size:0.66rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8a8a;line-height:1.7;margin-top:0.5rem';
+const sNote = 'font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#5a5a5a;line-height:1.9;margin-top:1rem;text-wrap:pretty';
+const sMicro = 'font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a;margin-top:0.4rem';
+
+const node = `justify-self:center;width:40px;height:40px;border:1px solid ${HAIRLINE};display:flex;align-items:center;justify-content:center;font-size:0.72rem;letter-spacing:0.1em;color:#ffffff`;
+const boxBig = `height:40px;border:1px solid ${HAIRLINE};display:flex;align-items:center;justify-content:center;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff;text-align:center`;
+const boxSm = `height:34px;border:1px solid ${HAIRLINE};display:flex;align-items:center;justify-content:center;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:#ffffff;text-align:center`;
+const inner = `border:1px solid ${HAIRLINE};padding:0.6rem;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase;color:#ffffff;text-align:center`;
+
+// arrows: a wrapper, a 1px line, and a CSS-triangle head. no pseudo-elements.
+const aWrap = (h: number) => `position:relative;width:8px;height:${h}px;margin:0 auto`;
+const aLineDown = (h: number, dashed = false, color = HAIRLINE) =>
+  dashed
+    ? `position:absolute;left:3px;top:0;width:0;height:${h}px;border-left:1px dashed ${color}`
+    : `position:absolute;left:3px;top:0;width:1px;height:${h}px;background:${color}`;
+const aLineUp = (h: number, dashed = false, color = HAIRLINE) =>
+  dashed
+    ? `position:absolute;left:3px;bottom:0;width:0;height:${h}px;border-left:1px dashed ${color}`
+    : `position:absolute;left:3px;bottom:0;width:1px;height:${h}px;background:${color}`;
+const aHeadDown = (color = HAIRLINE) =>
+  `position:absolute;left:0;bottom:0;width:0;height:0;border-top:7px solid ${color};border-left:4px solid transparent;border-right:4px solid transparent`;
+const aHeadUp = (color = HAIRLINE) =>
+  `position:absolute;left:0;top:0;width:0;height:0;border-bottom:7px solid ${color};border-left:4px solid transparent;border-right:4px solid transparent`;
+---
+
+<figure style="margin:0;border:1px solid rgba(255,255,255,0.16);background:#000;font-family:'JetBrains Mono', ui-monospace, monospace" class={className}>
+
+  <div style={band(false)}>
+    <div style={notesCell}>
+      <div style={sName}>{platformTitle}</div>
+      <div style={sSub}>{platformSubtitle}</div>
+      <div style={sNote}>{platformNote}</div>
+    </div>
+    <div style={flowCell}>
+      <div style={cols}>
+        {artists.map((letter, i) => (
+          <div style={`${node};grid-column:${i + 1};grid-row:1`}>{letter}</div>
+        ))}
+        {artists.map((_, i) => (
+          <div style={`${aWrap(30)};grid-column:${i + 1};grid-row:2`}>
+            <div style={aLineDown(23)}></div>
+            <div style={aHeadDown()}></div>
+          </div>
+        ))}
+
+        <div style={`grid-column:1/-1;border:1px solid ${HAIRLINE};padding:0.75rem`}>
+          <div style="font-size:0.66rem;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff;margin-bottom:0.75rem">Platform</div>
+          {showDatabase && (
+            <div>
+              <div style={inner}>{databaseLabel}</div>
+              <div style={`width:0;height:10px;margin:0 auto;border-left:1px dashed ${HAIRLINE}`}></div>
+            </div>
+          )}
+          <div style={inner}>{serversLabel}</div>
+        </div>
+
+        <div style="grid-column:1/-1;display:flex;justify-content:center;gap:2.5rem;padding:1rem 0">
+          <div style="text-align:center">
+            <div style={aWrap(34)}>
+              <div style={aLineDown(27)}></div>
+              <div style={aHeadDown()}></div>
+            </div>
+            <div style={sMicro}>{audioLabel}</div>
+          </div>
+          {showDatabase && (
+            <div style="text-align:center">
+              <div style={aWrap(34)}>
+                <div style={aLineUp(27, true)}></div>
+                <div style={aHeadUp()}></div>
+              </div>
+              <div style={sMicro}>{searchLabel}</div>
+            </div>
+          )}
+        </div>
+
+        <div style={`${boxBig};grid-column:1/-1`}>{appLabel}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style={band(true)}>
+    <div style={notesCell}>
+      <div style={sName}>{diyTitle}</div>
+      <div style={sSub}>{diySubtitle}</div>
+      <div style={sNote}>{diyNote}</div>
+    </div>
+    <div style={flowCell}>
+      <!-- three parallel paths that never meet — the separateness is the argument -->
+      <div style={cols}>
+        {artists.map((letter, i) => (
+          <div style={`grid-column:${i + 1};grid-row:1;border:1px solid ${FAINT};padding:0.6rem 0.4rem;display:flex;flex-direction:column;align-items:center`}>
+            <div style={node}>{letter}</div>
+            <div style={aWrap(28)}>
+              <div style={aLineDown(21)}></div>
+              <div style={aHeadDown()}></div>
+            </div>
+            <div style={`${boxSm};width:100%`}>{serverLabel}</div>
+          </div>
+        ))}
+        {artists.map((_, i) => (
+          <div style={`${aWrap(30)};grid-column:${i + 1};grid-row:2`}>
+            <div style={aLineDown(23)}></div>
+            <div style={aHeadDown()}></div>
+          </div>
+        ))}
+        {artists.map((letter, i) => (
+          <div style={`${boxSm};grid-column:${i + 1};grid-row:3`}>Site {letter}</div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div style={band(true)}>
+    <div style={notesCell}>
+      <div style={sName}>{stationTitle}</div>
+      <div style={sSub}>{stationSubtitle}</div>
+      <div style={sNote}>{stationNote}</div>
+    </div>
+    <div style={flowCell}>
+      <!-- ownership runs down each column; the network runs across the servers -->
+      <div style={`${cols};grid-template-rows:40px 30px 34px`}>
+        {artists.map((letter, i) => (
+          <div style={`${node};grid-column:${i + 1};grid-row:1`}>{letter}</div>
+        ))}
+        {artists.map((_, i) => (
+          <div style={`${aWrap(30)};grid-column:${i + 1};grid-row:2`}>
+            <div style={aLineDown(23)}></div>
+            <div style={aHeadDown()}></div>
+          </div>
+        ))}
+        {artists.map((_, i) => (
+          <div style={`${boxSm};grid-column:${i + 1};grid-row:3`}>{serverLabel}</div>
+        ))}
+        {artists.map((_, i) => (
+          <div style={`grid-column:${i + 1};grid-row:1/4;margin:-9px -6px;border:1px solid ${FAINT};pointer-events:none`}></div>
+        ))}
+        {showNetwork && (
+          <div style={`grid-column:1/-1;grid-row:3;margin:-20px -16px;border:2px dashed ${MINT};pointer-events:none`}></div>
+        )}
+      </div>
+
+      {showNetwork && (
+        <div style={`font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:${MINT};line-height:1.8;margin-top:1.75rem;text-wrap:pretty`}>{networkLabel}</div>
+      )}
+
+      <div style="display:flex;justify-content:center;gap:2.5rem;padding:1rem 0">
+        <div style="text-align:center">
+          <div style={aWrap(34)}>
+            <div style={aLineDown(27)}></div>
+            <div style={aHeadDown()}></div>
+          </div>
+          <div style={sMicro}>{audioLabel}</div>
+        </div>
+        {showNetwork && (
+          <div style="text-align:center">
+            <div style={aWrap(34)}>
+              <div style={aLineUp(27, true, MINT)}></div>
+              <div style={aHeadUp(MINT)}></div>
+            </div>
+            <div style={sMicro}>{searchLabel}</div>
+          </div>
+        )}
+      </div>
+
+      <div style={boxBig}>{oneAppLabel}</div>
+    </div>
+  </div>
+
+  <figcaption style="border-top:1px solid rgba(255,255,255,0.16);padding:11px 14px;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a">{caption}</figcaption>
+</figure>

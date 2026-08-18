@@ -1,0 +1,398 @@
+---
+/**
+ * WhyGenerationsPlate — HTML/CSS version of the "four models that don't fit"
+ * plate. Replaces WhyGenerationsDiagram.astro (SVG) where mobile matters.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * WHY THIS IS NOT AN SVG
+ * The SVG version is a 1248px canvas scaled by `width: 100%`. On a 390px phone
+ * that is a 0.28 scale, so its 11px labels render at ~3px. Nothing inside a
+ * fixed canvas can fix that. Here the text is real text: it reflows, holds its
+ * size, is selectable and searchable, and screen readers can read it.
+ *
+ * LAYOUT — TWO STATES, NO INTERMEDIATE
+ * `.wg-row` is a grid with one column by default and three tracks above 44rem.
+ * The query is a CONTAINER query, not a media query: the plate measures its own
+ * width, so it stays correct inside a narrow column and needs to know nothing
+ * about the site's breakpoints. There is deliberately no 2-up state — at
+ * mid-widths a 2+1 arrangement destroys the scannable "sorts fans by" column,
+ * which is the whole argument of the plate.
+ *
+ * Do not move the layout properties inline. Inline styles beat stylesheet
+ * rules, so an inline `grid-template-columns` would make the container query a
+ * no-op and weld the plate to one arrangement.
+ *
+ * TYPE SIZES
+ * These sit at the design system's 0.62–0.72rem label range, which renders at
+ * 10–11.5px. That range was written for labels on a page, not for the body text
+ * of a diagram, so it is on the small side for a laptop — but it is now a real
+ * rendered size rather than a scaled one. Raising the verdict text to 0.85rem
+ * and the names to 0.8rem is a one-line change if you want it; nothing needs
+ * rewriting to afford the space.
+ *
+ * ROW ORDER is load-bearing. Ranked fans sits last of the four because it is
+ * the near miss — the right thing to sort by at a resolution nobody can
+ * administer — so generations reads as a resolution choice rather than a
+ * different value system. The heavier rule above generations is the one
+ * emphatic hairline (32% vs 16%).
+ *
+ * Generations is the only mint row. It is a group rather than a single element
+ * because it is the outcome the plate exists to argue for.
+ */
+interface Row {
+  name: string;
+  subtitle: string;
+  sortsBy: string;
+  verdict: string;
+  /** Picks which bespoke glyph to draw. */
+  glyph: 'tiers' | 'supply' | 'equal' | 'ranked' | 'generations';
+}
+
+interface Props {
+  keyLine?: string;
+  sortsByLabel?: string;
+  rows?: Row[];
+  tierAmounts?: string[];
+  supplyPinCount?: number;
+  supplyNote?: string;
+  equalNote?: string;
+  rankLabels?: string[];
+  /** Pins above each cohort. Length also sets the number of generations drawn. */
+  cohortPins?: number[];
+  /** Relative width of each cohort on the time axis — spans, not counts. */
+  cohortSpans?: number[];
+  caption?: string;
+  showKeyLine?: boolean;
+  showSubtitles?: boolean;
+  showGlyphs?: boolean;
+  class?: string;
+}
+
+const {
+  keyLine = 'A collection of historical and theoretical patronage models',
+  sortsByLabel = 'Sorts fans by',
+  rows = [
+    {
+      name: 'Tiered support',
+      subtitle: '$5, $25, $100 a month',
+      sortsBy: 'Wallet size',
+      verdict: "Paying more means you're a better or bigger fan, poppycock.",
+      glyph: 'tiers',
+    },
+    {
+      name: 'Limited-supply NFT',
+      subtitle: '500 minted, then closed',
+      sortsBy: 'Money and artificial scarcity',
+      verdict: "You're either in or you're out.",
+      glyph: 'supply',
+    },
+    {
+      name: 'Everyone equal',
+      subtitle: 'No distinction at all',
+      sortsBy: 'Nothing',
+      verdict:
+        'Day one and last Tuesday look the same. The one distinction fans already make, thrown away.',
+      glyph: 'equal',
+    },
+    {
+      name: 'Ranked fans',
+      subtitle: 'Fan #1, fan #2, fan #3',
+      sortsBy: 'Arrival — one fan at a time',
+      verdict: 'The right thing to sort by, at a resolution nobody can administer.',
+      glyph: 'ranked',
+    },
+    {
+      name: 'Generations',
+      subtitle: 'FanPins, by cohort',
+      sortsBy: 'Arrival — in cohorts',
+      verdict:
+        'When a fan showed up, at a resolution the artist chooses. What they paid does not enter into it.',
+      glyph: 'generations',
+    },
+  ],
+  tierAmounts = ['$5', '$25', '$100'],
+  supplyPinCount = 9,
+  supplyNote = 'Nobody else, ever',
+  equalNote = 'One undivided group',
+  rankLabels = ['#1', '#2', '#3', '#4'],
+  cohortPins = [3, 5, 7],
+  cohortSpans = [0.26, 0.45, 0.55],
+  caption = 'why generations — four models considered, one kept',
+  showKeyLine = true,
+  showSubtitles = true,
+  showGlyphs = true,
+  class: className,
+} = Astro.props;
+
+// bar heights encode what you paid — the point of the tiers glyph
+const tierHeights = [20, 40, 60];
+const cohortTracks = cohortSpans.slice(0, cohortPins.length).join('fr ') + 'fr';
+---
+
+<figure class:list={['wg-plate', className]}>
+  {showKeyLine && <div class="wg-keyline">{keyLine}</div>}
+
+  {rows.map((row, i) => (
+    <div class:list={['wg-row', { 'wg-row--first': i === 0, 'wg-row--choice': row.glyph === 'generations' }]}>
+      <div>
+        <div class:list={['wg-name', { 'wg-mint': row.glyph === 'generations' }]}>{row.name}</div>
+        {showSubtitles && <div class="wg-sub">{row.subtitle}</div>}
+      </div>
+
+      {showGlyphs && (
+        <div class="wg-glyph">
+          {row.glyph === 'tiers' && (
+            <div class="wg-bars">
+              {tierAmounts.map((amount, k) => (
+                <div>
+                  <div class="wg-bar" style={{ height: `${tierHeights[k]}px` }}></div>
+                  <div class="wg-micro wg-micro--centre">{amount}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {row.glyph === 'supply' && (
+            <div class="wg-supply">
+              <div class="wg-pins">
+                {Array.from({ length: supplyPinCount }, () => <div class="wg-pin"></div>)}
+              </div>
+              <div class="wg-wall-group">
+                <div class="wg-wall"></div>
+                <div class="wg-micro">{supplyNote}</div>
+              </div>
+            </div>
+          )}
+
+          {row.glyph === 'equal' && <div class="wg-box">{equalNote}</div>}
+
+          {row.glyph === 'ranked' && (
+            <div class="wg-ranks">
+              {rankLabels.map((label) => (
+                <div>
+                  <div class="wg-tick"></div>
+                  <div class="wg-micro">{label}</div>
+                </div>
+              ))}
+              <div class="wg-micro wg-ellipsis">...</div>
+              <div>
+                <div class="wg-tick"></div>
+                <div class="wg-micro">#4102</div>
+              </div>
+            </div>
+          )}
+
+          {row.glyph === 'generations' && (
+            <div class="wg-axis" style={{ gridTemplateColumns: cohortTracks }}>
+              {cohortPins.map((count, k) => (
+                <div>
+                  <div class="wg-cohort-pins">
+                    {Array.from({ length: count }, () => <div class="wg-mint-pin"></div>)}
+                  </div>
+                  <div class:list={['wg-line', { 'wg-line--open': k === cohortPins.length - 1 }]}></div>
+                  <div class="wg-cohort-label">Gen {k + 1}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div>
+        <div class="wg-eyebrow">{sortsByLabel}</div>
+        <div class:list={['wg-value', { 'wg-mint': row.glyph === 'generations' }]}>{row.sortsBy}</div>
+        <div class="wg-verdict">{row.verdict}</div>
+      </div>
+    </div>
+  ))}
+
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .wg-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    /* the plate is the query container — it responds to its own width */
+    container-type: inline-size;
+  }
+
+  /* two states only: three tracks, or fully stacked. never 2 + 1. */
+  .wg-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 1.75rem clamp(1rem, 3vw, 1.75rem);
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+  }
+  .wg-row--first { border-top: 0; }
+  /* the one emphatic hairline */
+  .wg-row--choice { border-top-color: rgba(255, 255, 255, 0.32); }
+
+  @container (min-width: 44rem) {
+    .wg-row {
+      grid-template-columns: 190px minmax(200px, 1fr) minmax(280px, 1.35fr);
+      gap: 2rem;
+      align-items: start;
+    }
+  }
+
+  .wg-keyline {
+    padding: 1rem clamp(1rem, 3vw, 1.75rem);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    font-size: 0.62rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+    line-height: 1.8;
+  }
+
+  .wg-name {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1.6;
+  }
+  .wg-sub {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+    line-height: 1.7;
+    margin-top: 0.5rem;
+  }
+  .wg-eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+  }
+  .wg-value {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1.6;
+    margin-top: 0.5rem;
+  }
+  .wg-verdict {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+    line-height: 1.9;
+    margin-top: 0.85rem;
+    text-wrap: pretty;
+  }
+  .wg-micro {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+    margin-top: 0.6rem;
+  }
+  .wg-micro--centre { text-align: center; }
+  .wg-mint { color: #adebb3; }
+
+  /* tiers — bar height is what you paid */
+  .wg-bars { display: flex; align-items: flex-end; gap: 1rem; }
+  .wg-bar { width: 48px; border: 1px solid rgba(255, 255, 255, 0.62); }
+
+  /* limited supply — a bounded run, then a wall */
+  .wg-supply { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem 1rem; }
+  .wg-pins { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .wg-pin {
+    width: 10px;
+    height: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    border-radius: 50%;
+  }
+  .wg-wall-group { display: flex; align-items: center; gap: 0.75rem; }
+  .wg-wall { width: 2px; height: 32px; background: rgba(255, 255, 255, 0.62); }
+  .wg-wall-group .wg-micro { margin-top: 0; }
+
+  /* everyone equal — no internal structure at all */
+  .wg-box {
+    width: 100%;
+    max-width: 300px;
+    min-height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  /* ranked fans — a tick per fan, running off past #4102 */
+  .wg-ranks { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem 1.25rem; }
+  .wg-tick { width: 1px; height: 20px; background: rgba(255, 255, 255, 0.62); margin: 0 auto; }
+  .wg-ellipsis { margin-top: 0; padding-top: 0.5rem; }
+
+  /* generations — cohorts on a time axis, pins above each */
+  .wg-axis { display: grid; align-items: end; width: 100%; }
+  .wg-cohort-pins {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.85rem;
+  }
+  .wg-mint-pin {
+    width: 9px;
+    height: 9px;
+    border: 2px solid #adebb3;
+    border-radius: 50%;
+    background: #000;
+  }
+  .wg-line { position: relative; height: 2px; background: #adebb3; }
+  /* cohort boundary tick */
+  .wg-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -9px;
+    width: 2px;
+    height: 20px;
+    background: #adebb3;
+  }
+  /* the open end keeps going */
+  .wg-line--open::after {
+    content: '';
+    position: absolute;
+    right: -7px;
+    top: -3px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid #adebb3;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .wg-cohort-label {
+    text-align: center;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #adebb3;
+    margin-top: 0.85rem;
+  }
+
+  .wg-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+</style>

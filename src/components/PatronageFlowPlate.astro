@@ -1,0 +1,406 @@
+---
+/**
+ * PatronageFlowPlate — HTML/CSS version of the one-time vs monthly plate.
+ * Replaces PatronageFlowDiagram.astro (SVG) where mobile matters.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * WHY THIS IS NOT AN SVG
+ * The SVG version is a 1248px canvas scaled by `width: 100%`, so on a phone its
+ * 11px labels render at ~3px. Here the text is real text: it reflows, holds its
+ * size, and is selectable and readable by screen readers.
+ *
+ * THE MONEY ENCODING IS THE POINT — DO NOT MAKE IT RELATIVE
+ * `UNIT_PX` is pixels per `monthlyAmount`. The 12 payment marks are each
+ * UNIT_PX tall and the one-time bar is months × UNIT_PX, so the two rows are
+ * visibly the same quantity of ink. Both are ABSOLUTE pixel heights, which is
+ * why the claim "both rows total the same $36" survives at any viewport — it
+ * would not survive a scaled canvas or a percentage height. Change
+ * monthlyAmount or months and the invariant holds; switch these to percentages
+ * and the plate starts lying.
+ *
+ * HORIZONTAL GEOMETRY — ONE SHARED AXIS
+ * All four bands use `.pf-band`, a grid with a 190px label column above 44rem
+ * and a single stacked column below. Because every band shares that grid, the
+ * plot columns are identical widths, which is what lets month 12 sit at the
+ * same place in the subscription row, the donation row and the axis. Positions
+ * are percentages of the plot: the payment year ends at `payEndPercent` (72.3%)
+ * and the remainder of the axis carries "later".
+ *
+ * The axis band has an EMPTY first cell. That is load-bearing, not an oversight.
+ *
+ * TWO STATES, NEVER AN INTERMEDIATE
+ * `.pf-notes` holds the pair of notes at opposite ends of the access bar: two
+ * equal tracks with the end note right-aligned above 44rem, one stacked column
+ * below. Right-anchoring the end note to the axis end is what the SVG did, and
+ * it is what makes it read as "after the payments stop" rather than as a caption
+ * for "now" — the association is spatial, so keep it.
+ *
+ * Use `fr` tracks under an explicit query rather than fixed flex bases with
+ * max-width caps. A cap whose total exceeds the plot width makes the intended
+ * arrangement unreachable, and the layout silently falls back to stacked.
+ *
+ * Do not move layout properties inline anywhere in this file. Inline styles beat
+ * stylesheet rules, so an inline `grid-template-columns` turns the container
+ * query into a no-op and welds the plate to one arrangement.
+ */
+interface Props {
+  monthlyAmount?: number;
+  months?: number;
+  patrons?: number;
+  /** Where the payment period ends on the axis; the rest carries "later". */
+  payEndPercent?: number;
+  subLabel?: string;
+  subSubLabel?: string;
+  accessLabel?: string;
+  stopLabel?: string;
+  stopSubLabel?: string;
+  oneTimeLabel?: string;
+  oneTimeSubLabel?: string;
+  oneTimeAmountLabel?: string;
+  oneTimeConsolidation?: string;
+  fanPinLabel?: string;
+  fanPinSubLabel?: string;
+  axisFootnote?: string;
+  aggregateLabel?: string;
+  aggregateSubLabel?: string;
+  aggregateBracket?: string;
+  aggregateTotal?: string;
+  aggregateNote?: string;
+  caption?: string;
+  showBracket?: boolean;
+  showStopMarker?: boolean;
+  showPermanentAccess?: boolean;
+  class?: string;
+}
+
+const {
+  monthlyAmount = 3,
+  months = 12,
+  patrons = 100,
+  payEndPercent = 72.3,
+  subLabel = 'Monthly subscription',
+  subSubLabel = 'Patreon-shaped',
+  accessLabel = 'Access — only while the payments keep coming',
+  stopLabel = 'Payments stop. Access stops.',
+  oneTimeLabel = 'One-time patronage',
+  oneTimeSubLabel = 'FanSociety',
+  oneTimeConsolidation = 'A year of monthly payments, consolidated into the present',
+  fanPinLabel = "Access — FanPin minted, generation 1. Membership doesn't lapse.",
+  fanPinSubLabel = 'One payment. The timestamp is the membership.',
+  aggregateLabel = 'One month, one hundred patrons',
+  aggregateSubLabel = 'Aggregate',
+  aggregateNote = 'Seed capital a record deal used to provide',
+  caption = 'one-time patronage vs monthly subscription — illustrative amounts',
+  showBracket = true,
+  showStopMarker = true,
+  showPermanentAccess = true,
+  class: className,
+} = Astro.props;
+
+const UNIT_PX = 10; // px per monthlyAmount — the shared money scale
+const total = monthlyAmount * months;
+const money = (n: number) => '$' + n.toLocaleString('en-US');
+
+// month n as a percentage of the plot
+const at = (n: number) => (n / months) * payEndPercent;
+const markPositions = Array.from({ length: months }, (_, i) => at(i + 1));
+const axisTicks = [0, ...Array.from({ length: Math.floor(months / 3) }, (_, i) => (i + 1) * 3)];
+
+const stopSub = Astro.props.stopSubLabel ?? `The ${months} already paid count for nothing`;
+const oneTimeAmount = Astro.props.oneTimeAmountLabel ?? `${money(total)} — all of it, on day one`;
+const footnote =
+  Astro.props.axisFootnote ??
+  `Both rows total the same ${money(total)}. Only the timing and the expiry differ.`;
+const bracketLabel =
+  Astro.props.aggregateBracket ?? `${patrons} patrons, each giving ${money(total)} once`;
+const subBracket = `${money(total)} — arriving ${money(monthlyAmount)} at a time, over one year`;
+const aggTotal = Astro.props.aggregateTotal ?? `${money(total * patrons)} — in a single month`;
+---
+
+<figure class:list={['pf-plate', className]}>
+  <div class="pf-band pf-band--pad">
+    <div>
+      <div class="pf-name">{subLabel}</div>
+      <div class="pf-sub">{subSubLabel}</div>
+      <div class="pf-scale">{money(monthlyAmount)} each, {months} times</div>
+    </div>
+    <div>
+      {showBracket && (
+        <div>
+          <div class="pf-bracket-label">{subBracket}</div>
+          <div
+            class="pf-bracket"
+            style={{ marginLeft: `${markPositions[0]}%`, width: `${markPositions[months - 1] - markPositions[0]}%` }}>
+          </div>
+        </div>
+      )}
+
+      <div class="pf-marks" style={{ height: `${UNIT_PX}px` }}>
+        {markPositions.map((left) => (
+          <div class="pf-mark" style={{ left: `${left}%`, height: `${UNIT_PX}px` }}></div>
+        ))}
+      </div>
+      <div class="pf-baseline"></div>
+
+      <div class="pf-accessbar">
+        <div class="pf-accessbar-line" style={{ width: `${payEndPercent}%` }}></div>
+        <div class="pf-accessbar-cap" style={{ left: `${payEndPercent}%` }}></div>
+      </div>
+
+      <div class="pf-notes">
+        <div class="pf-note">{accessLabel}</div>
+        {showStopMarker && (
+          <div class="pf-note-end">
+            <div class="pf-note">{stopLabel}</div>
+            <div class="pf-note-dim">{stopSub}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <div class="pf-band pf-band--pad pf-band--ruled">
+    <div>
+      <div class="pf-name">{oneTimeLabel}</div>
+      <div class="pf-sub">{oneTimeSubLabel}</div>
+      <div class="pf-scale">{money(total)} once</div>
+    </div>
+    <div>
+      <div class="pf-lump">
+        <div class="pf-bar" style={{ height: `${months * UNIT_PX}px` }}></div>
+        <div>
+          <div class="pf-amount">{oneTimeAmount}</div>
+          <div class="pf-note pf-note--gap">{oneTimeConsolidation}</div>
+        </div>
+      </div>
+      <div class="pf-baseline pf-baseline--gap"></div>
+
+      {showPermanentAccess && (
+        <div class="pf-forever">
+          <div class="pf-forever-line"></div>
+          <div class="pf-forever-dot"></div>
+          <div class="pf-forever-tip"></div>
+        </div>
+      )}
+      <div class="pf-mint">{fanPinLabel}</div>
+      <div class="pf-note-dim">{fanPinSubLabel}</div>
+    </div>
+  </div>
+
+  <!-- the empty first cell is what keeps this axis aligned with the bands above -->
+  <div class="pf-band pf-band--axis">
+    <div></div>
+    <div>
+      <div class="pf-axis-rule"></div>
+      <div class="pf-axis-ticks">
+        {axisTicks.map((m) => <div class="pf-axis-tick" style={{ left: `${at(m)}%` }}></div>)}
+      </div>
+      <div class="pf-axis-labels">
+        <div class="pf-axis-first">Now</div>
+        {axisTicks.slice(1).map((m) => (
+          <div class="pf-axis-mid" style={{ left: `${at(m)}%` }}>{m} mo</div>
+        ))}
+        <div class="pf-axis-last">Later</div>
+      </div>
+      <div class="pf-note-dim pf-note--gap">{footnote}</div>
+    </div>
+  </div>
+
+  <div class="pf-band pf-band--pad pf-band--ruled">
+    <div>
+      <div class="pf-name">{aggregateLabel}</div>
+      <div class="pf-sub">{aggregateSubLabel}</div>
+      <div class="pf-scale">1 = 1 patron</div>
+    </div>
+    <div>
+      <div class="pf-bracket-label">{bracketLabel}</div>
+      <div class="pf-bracket pf-bracket--full"></div>
+      <div class="pf-patrons">
+        {Array.from({ length: patrons }, () => <div class="pf-patron"></div>)}
+      </div>
+      <div class="pf-amount pf-amount--gap">{aggTotal}</div>
+      <div class="pf-note">{aggregateNote}</div>
+    </div>
+  </div>
+
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .pf-plate {
+    margin: 0;
+    border: 1px solid var(--rule);
+    background: #000;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    /* the plate is the query container — it responds to its own width */
+    container-type: inline-size;
+  }
+
+  /* every band shares this grid, which is what aligns the time axis */
+  .pf-band {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .pf-band--pad { padding: 1.75rem clamp(1rem, 3vw, 1.75rem); }
+  .pf-band--axis { padding: 0 clamp(1rem, 3vw, 1.75rem) 1.75rem; }
+  .pf-band--ruled { border-top: 1px solid rgba(255, 255, 255, 0.16); }
+
+  /* the note pair at opposite ends of the access bar */
+  .pf-notes { display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin-top: 0.75rem; }
+
+  @container (min-width: 44rem) {
+    .pf-band { grid-template-columns: 190px 1fr; gap: 2rem; align-items: start; }
+    .pf-notes { grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
+    .pf-note-end { text-align: right; }
+  }
+
+  .pf-name {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1.6;
+  }
+  .pf-sub,
+  .pf-scale {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #5a5a5a;
+    line-height: 1.7;
+    margin-top: 0.5rem;
+  }
+  .pf-scale { font-size: 0.62rem; margin-top: 1rem; }
+
+  .pf-note,
+  .pf-mint,
+  .pf-note-dim {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+    line-height: 1.9;
+    text-wrap: pretty;
+  }
+  .pf-mint { color: #adebb3; margin-top: 0.75rem; }
+  .pf-note-dim { font-size: 0.66rem; color: #5a5a5a; }
+  .pf-note--gap { margin-top: 0.6rem; }
+
+  .pf-amount {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1.7;
+  }
+  .pf-amount--gap { margin-top: 1.5rem; }
+
+  /* the subscription row: one mark per payment, each UNIT_PX tall */
+  .pf-marks { position: relative; margin-top: 0.75rem; }
+  .pf-mark {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+  }
+  .pf-baseline { height: 1px; background: rgba(255, 255, 255, 0.14); }
+  .pf-baseline--gap { margin-top: 0.5rem; }
+
+  .pf-bracket-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+    text-align: center;
+    line-height: 1.8;
+    margin-bottom: 0.5rem;
+  }
+  .pf-bracket {
+    height: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.32);
+    border-left: 1px solid rgba(255, 255, 255, 0.32);
+    border-right: 1px solid rgba(255, 255, 255, 0.32);
+  }
+  .pf-bracket--full { margin-top: 0.5rem; }
+
+  .pf-accessbar { position: relative; height: 20px; margin-top: 1.5rem; }
+  .pf-accessbar-line {
+    position: absolute;
+    top: 9px;
+    left: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.62);
+  }
+  .pf-accessbar-cap {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.62);
+  }
+
+  /* the donation row: one bar, months × UNIT_PX tall */
+  .pf-lump { display: flex; gap: 1.5rem; align-items: flex-start; }
+  .pf-bar { flex: 0 0 auto; width: 14px; border: 1px solid rgba(255, 255, 255, 0.62); }
+
+  .pf-forever { position: relative; height: 12px; margin-top: 1.75rem; }
+  .pf-forever-line { position: absolute; top: 5px; left: 0; right: 7px; height: 2px; background: #adebb3; }
+  .pf-forever-dot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #adebb3;
+    border-radius: 50%;
+    background: #000;
+  }
+  .pf-forever-tip {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-left: 7px solid #adebb3;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+
+  .pf-axis-rule { height: 1px; background: rgba(255, 255, 255, 0.32); }
+  .pf-axis-ticks { position: relative; height: 8px; }
+  .pf-axis-tick { position: absolute; top: 0; width: 1px; height: 8px; background: rgba(255, 255, 255, 0.32); }
+  .pf-axis-labels {
+    position: relative;
+    height: 1rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8a8a8a;
+    margin-top: 0.5rem;
+  }
+  .pf-axis-first { position: absolute; left: 0; }
+  .pf-axis-mid { position: absolute; transform: translateX(-50%); }
+  .pf-axis-last { position: absolute; right: 0; }
+
+  /* a count encoding — wrapping is honest, these are not on a scale */
+  .pf-patrons { display: flex; flex-wrap: wrap; gap: 0.15rem; margin-top: 0.85rem; }
+  .pf-patron {
+    width: 5px;
+    height: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    border-radius: 50%;
+  }
+
+  .pf-plate figcaption {
+    border-top: 1px solid var(--rule);
+    padding: 11px 14px;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-dim);
+  }
+</style>

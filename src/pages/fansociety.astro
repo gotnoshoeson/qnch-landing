@@ -1,8 +1,8 @@
 ---
 import Page from '../layouts/Page.astro';
-import PatronageFlowDiagram from '../components/PatronageFlowDiagram.astro';
-import GenerationsDiagram from '../components/GenerationsDiagram.astro';
-import WhyGenerationsDiagram from '../components/WhyGenerationsDiagram.astro';
+import PatronageFlowPlate from '../components/PatronageFlowPlate.astro';
+import GenerationsPlate from '../components/GenerationsPlate.astro';
+import WhyGenerationsPlate from '../components/WhyGenerationsPlate.astro';
 
 const setup = [
 	{
@@ -58,7 +58,7 @@ const setup = [
 				</div>
 			</div>
 
-			<PatronageFlowDiagram />
+			<PatronageFlowPlate />
 		</div>
 	</section>
 
@@ -71,7 +71,7 @@ const setup = [
 				that sorts by when someone showed up, at a resolution an artist can actually manage.
 			</p>
 
-			<WhyGenerationsDiagram />
+			<WhyGenerationsPlate />
 		</div>
 	</section>
 
@@ -83,7 +83,9 @@ const setup = [
 				Everything about the model is taken from existing social contracts. FanSociety uses a cohorts model that is manageable for artists and fair for fans.
 			</p>
 
-			<GenerationsDiagram />
+			<div class="plate-gap">
+				<GenerationsPlate />
+			</div>
 
 			<div class="prose wide">
 				<p>
@@ -226,8 +228,9 @@ const setup = [
 		margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
 	}
 
-	/* This one has prose on both sides of it. */
-	.wrap :global(.gn-plate) {
+	/* GenerationsPlate sets margin:0 inline, which no stylesheet rule can beat,
+	   so the air goes on a wrapper instead. Prose sits on both sides of it. */
+	.plate-gap {
 		margin: clamp(2.5rem, 5vw, 3.5rem) 0;
 	}
 

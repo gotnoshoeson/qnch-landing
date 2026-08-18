@@ -1,0 +1,264 @@
+---
+/**
+ * RevShareInheritancePlate — HTML/CSS version of the rev share inheritance
+ * plate. Replaces RevShareInheritanceDiagram.astro (SVG) where mobile matters.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * WHY THIS IS NOT AN SVG
+ * The SVG version is a 1248px canvas scaled by `width: 100%`, so on a 390px
+ * phone its 11px labels render at ~3px. Here the text is real text: it reflows,
+ * holds its size, is selectable and searchable, and screen readers can read it.
+ *
+ * ============================================================================
+ * ONE COLUMN AT EVERY WIDTH. NO SIDE-BY-SIDE ANYTHING.
+ * ============================================================================
+ * Two earlier attempts put the factory in its own column beside the flow — a
+ * flex-wrap pair, then a notes column. Both were fine on a laptop and both broke
+ * down on a phone, where the column either squeezed the diagram or stranded its
+ * notes far from what they annotate. This version is a single 460px spine,
+ * centred, with every note directly under the box it belongs to. It renders
+ * identically at 320px and at 1248px. Keep it narrow; do not "use the space",
+ * and do not reintroduce a column.
+ *
+ * ============================================================================
+ * NO <style> BLOCK, NO CLASSES, NO CSS VARIABLES. ON PURPOSE.
+ * ============================================================================
+ * Same reason as NetworkArchitecturePlate: a scoped `<style>` block is not
+ * applied to these plates in the consuming site — one earlier attempt rendered
+ * with a previous version's rules, a rename rendered fully unstyled. Every
+ * visual rule here is an inline style attribute and every colour is a literal
+ * rgba/hex rather than var(--rule) / var(--gray-dim). If you refactor this into
+ * classes you will reintroduce both bugs. No ::before/::after either: each arrow
+ * is a wrapper holding a line and a CSS-triangle head.
+ *
+ * WHAT THE PLATE ARGUES, IN ORDER
+ * 1  The factory is STATION's. It holds one number, and that is the only thing
+ *    Station contributes to the artist's contract.
+ * 2  Deploying copies the number in. The dashed mint line has no return path;
+ *    that absence is the argument.
+ * 3  The contract and the server are BOTH the artist's — one hairline box around
+ *    the pair. The fan's money enters the contract.
+ * 4  The artist's server listens for the contract's transactions. This is the
+ *    answer to "why not just pay the artist's wallet": money can move wallet to
+ *    wallet, but a bare transfer cannot say which product it was for, so nothing
+ *    can unlock. Drawn as a dashed line from the contract down to the server.
+ * 5  Every sale settles against the copy: artist 100%, Station 0%.
+ *
+ * LINE CONVENTION
+ *   solid white   — money
+ *   dashed mint   — the rate, travelling once, at deploy
+ *   dashed white  — information, both directions
+ * Three conventions is the limit. If something else needs a line, give it a
+ * label instead.
+ *
+ * The Station branch out of the split is dimmer than the artist branch (32%
+ * line, #8a8a8a head, 32% box border) so stroke weight matches the 0% claim.
+ * The labels themselves stay white.
+ *
+ * GRID GAP IS ZERO ON PURPOSE
+ * The split grid is `1fr 1fr` with `gap:0`; the gutter is `padding:0 0.375rem`
+ * inside each cell. That puts a column centre at exactly 25% / 75%, which is what
+ * lets the crossbar (`margin:0 25%`) meet the arrows. Add a column gap and both
+ * numbers are wrong by a quarter of it.
+ *
+ * The rate is written THEORETICAL RATE, not "rate today", so the plate does not
+ * go stale when the factory's number moves.
+ *
+ * Treasury and multisig are deliberately absent. They are a separate diagram;
+ * adding them here buries the inheritance point.
+ */
+interface Props {
+  artistShare?: string;
+  stationShare?: string;
+  /** Defaults to `Theoretical rate — {stationShare} | {artistShare}`. */
+  startingRate?: string;
+  factoryLabel?: string;
+  stationOwnsLabel?: string;
+  factoryNote?: string;
+  inheritanceLabel?: string;
+  fanPaysLabel?: string;
+  artistOwnsLabel?: string;
+  contractLabel?: string;
+  contractSubLabel?: string;
+  serverLabel?: string;
+  serverSubLabel?: string;
+  serverLinkLabel?: string;
+  walletNote?: string;
+  artistLabel?: string;
+  stationLabel?: string;
+  settlementNote?: string;
+  footnote?: string;
+  keyLine?: string;
+  caption?: string;
+  /** Draw the contract-to-server information link and its note. */
+  showServer?: boolean;
+  /** Draw the split row (artist / station) at all. */
+  showSplit?: boolean;
+  class?: string;
+}
+
+const {
+  artistShare = '95%',
+  stationShare = '5%',
+  factoryLabel = 'Factory',
+  stationOwnsLabel = 'Station owns this',
+  factoryNote = 'station | artist — the rate',
+  inheritanceLabel = 'Inherited at creation - immutable, unchangeable',
+  fanPaysLabel = 'A fan pays',
+  artistOwnsLabel = 'The artist owns this',
+  contractLabel = "Artist's contract",
+  contractSubLabel = 'Releases, merch, fan club',
+  serverLabel = "Artist's server",
+  serverSubLabel = 'Catalog and access',
+  serverLinkLabel = "Artist's server listens for transactions",
+  walletNote =
+    "Money can move wallet to wallet without smart contracts, but aren't able to distinguish what product a payment was for. Funds are available and split instantly.",
+  artistLabel = 'Artist can only withdrawal',
+  stationLabel = 'Station can only withdrawal',
+  settlementNote = 'Every sale settles against the rev share rate the contract was deployed with.',
+  footnote =
+    "The factory's rate may rise for contracts deployed later. It cannot alter the terms of contracts that are already deployed.",
+  keyLine =
+    'Solid lines carry money. Dashed lines carry information. The hairline boxes mark what belongs to whom.',
+  caption = 'rev share inheritance — testnet, paseo asset hub',
+  showServer = true,
+  showSplit = true,
+  class: className,
+} = Astro.props;
+
+// the split the deployed contract carries, shown inside its box
+const inheritedRate = `${stationShare} | ${artistShare}`;
+const startingRate = Astro.props.startingRate ?? `Theoretical rate — ${inheritedRate}`;
+
+// inline style strings, named so the markup stays readable without CSS classes
+const HAIRLINE = 'rgba(255,255,255,0.62)';
+const DIM = 'rgba(255,255,255,0.32)';
+const FAINT = 'rgba(255,255,255,0.16)';
+const MINT = '#adebb3';
+const PAD = 'clamp(1rem,3vw,1.75rem)';
+
+const sRail = `padding:1rem ${PAD};font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a;line-height:1.9;text-wrap:pretty`;
+const sOwner = 'font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8a8a;line-height:1.7';
+const sNote = 'font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a;line-height:1.9;text-wrap:pretty';
+const sMicro = 'font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8a8a;line-height:1.7';
+
+const ownerBox = `border:1px solid ${FAINT};padding:0.9rem;margin-top:0.5rem`;
+// the artist's box is entered by the fan-payment arrow, so its top is tight:
+// nothing — not even a label or a note — may sit between a connector and its box
+const ownerBoxEntered = `border:1px solid ${FAINT};padding:0.55rem 0.9rem 0.9rem;margin-top:4px`;
+const nodeBox = `border:1px solid ${HAIRLINE};padding:0.9rem 0.6rem;text-align:center`;
+const boxLabel = 'font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:#ffffff;line-height:1.6';
+const boxSub = 'font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;color:#5a5a5a;line-height:1.7;margin-top:0.5rem';
+const boxMint = `font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:${MINT};line-height:1.6;margin-top:0.6rem`;
+const splitBox = (border: string) =>
+  `border:1px solid ${border};padding:0.85rem 0.5rem;text-align:center;height:100%;box-sizing:border-box`;
+
+// arrows: a wrapper, a line, and a CSS-triangle head. no pseudo-elements.
+const aWrap = (h: number, w = 8) => `position:relative;width:${w}px;height:${h}px`;
+const aLine = (h: number, color = HAIRLINE) =>
+  `position:absolute;left:3px;top:0;width:1px;height:${h}px;background:${color}`;
+const aHead = (color = HAIRLINE) =>
+  `position:absolute;left:0;bottom:0;width:0;height:0;border-top:7px solid ${color};border-left:4px solid transparent;border-right:4px solid transparent`;
+---
+
+<figure
+  style="margin:0;border:1px solid rgba(255,255,255,0.16);background:#000;font-family:'JetBrains Mono', ui-monospace, monospace"
+  class={className}>
+
+  <div style={`${sRail};border-bottom:1px solid ${FAINT};letter-spacing:0.24em;line-height:1.8`}>{keyLine}</div>
+
+  <div style={`padding:1.75rem ${PAD}`}>
+    <!-- one spine, centred, capped: identical at 320px and 1248px -->
+    <div style="max-width:460px;margin:0 auto">
+
+      <div style={sOwner}>{stationOwnsLabel}</div>
+      <div style={ownerBox}>
+        <div style={`border:1px solid ${HAIRLINE};padding:1rem 0.75rem;text-align:center`}>
+          <div style="font-size:0.66rem;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff">{factoryLabel}</div>
+          <div style={`font-size:0.66rem;letter-spacing:0.2em;text-transform:uppercase;color:${MINT};line-height:1.7;margin-top:0.7rem`}>{startingRate}</div>
+        </div>
+      </div>
+      <div style={`${sNote};margin-top:0.85rem`}>{factoryNote}</div>
+
+      <!-- the rate travels once, and never back -->
+      <div style={`${aWrap(40, 10)};margin:1.1rem auto 0`}>
+        <div style={`position:absolute;left:4px;top:0;width:0;height:33px;border-left:2px dashed ${MINT}`}></div>
+        <div style={`position:absolute;left:0;bottom:0;width:0;height:0;border-top:7px solid ${MINT};border-left:5px solid transparent;border-right:5px solid transparent`}></div>
+      </div>
+      <div style={`font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:${MINT};line-height:1.8;text-align:center;text-wrap:pretty;margin-top:0.5rem`}>{inheritanceLabel}</div>
+
+      <div style={`${sOwner};margin-top:1.5rem`}>{artistOwnsLabel}</div>
+      <div style={`${sMicro};text-align:center;margin-top:0.85rem`}>{fanPaysLabel}</div>
+      <div style={`${aWrap(30)};margin:0.4rem auto 0`}>
+        <div style={aLine(23)}></div>
+        <div style={aHead()}></div>
+      </div>
+
+      <div style={ownerBoxEntered}>
+        <div style={nodeBox}>
+          <div style={boxLabel}>{contractLabel}</div>
+          <div style={boxSub}>{contractSubLabel}</div>
+          <div style={boxMint}>{inheritedRate}</div>
+        </div>
+
+        {showServer && (
+          <div>
+            <!-- information leaves the contract; the server watches for it -->
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.85rem;padding:0.6rem 0">
+              <div style={`${aWrap(52, 10)};flex:0 0 auto`}>
+                <div style={`position:absolute;left:4px;top:0;bottom:7px;width:0;border-left:1px dashed ${HAIRLINE}`}></div>
+                <div style={`position:absolute;left:0;bottom:0;width:0;height:0;border-top:7px solid ${HAIRLINE};border-left:5px solid transparent;border-right:5px solid transparent`}></div>
+              </div>
+              <div style="font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:#8a8a8a;line-height:1.8;text-wrap:pretty">{serverLinkLabel}</div>
+            </div>
+            <div style={nodeBox}>
+              <div style={boxLabel}>{serverLabel}</div>
+              <div style={boxSub}>{serverSubLabel}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showSplit && (
+        <div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:1.4rem">
+            <div style={`grid-column:1/-1;grid-row:1;justify-self:center;width:1px;height:30px;background:${HAIRLINE}`}></div>
+            <div style={`grid-column:1/-1;grid-row:2;margin:0 25%;height:1px;background:${HAIRLINE}`}></div>
+
+            <div style={`${aWrap(28)};grid-column:1;grid-row:3;justify-self:center`}>
+              <div style={aLine(21)}></div>
+              <div style={aHead()}></div>
+            </div>
+            <!-- Station's branch is dimmer: stroke weight matches the 0% claim -->
+            <div style={`${aWrap(28)};grid-column:2;grid-row:3;justify-self:center`}>
+              <div style={aLine(21, DIM)}></div>
+              <div style={aHead('#8a8a8a')}></div>
+            </div>
+
+            <div style="grid-column:1;grid-row:4;padding:4px 0.375rem 0">
+              <div style={splitBox(HAIRLINE)}>
+                <div style={boxLabel}>{artistLabel}</div>
+                <div style={`${boxLabel};margin-top:0.6rem`}>{artistShare}</div>
+              </div>
+            </div>
+            <div style="grid-column:2;grid-row:4;padding:4px 0.375rem 0">
+              <div style={splitBox(DIM)}>
+                <div style={boxLabel}>{stationLabel}</div>
+                <div style={`${boxLabel};margin-top:0.6rem`}>{stationShare}</div>
+              </div>
+            </div>
+          </div>
+          <div style={`${sNote};margin-top:0.9rem`}>{settlementNote}</div>
+        </div>
+      )}
+
+      {showServer && <div style={`${sNote};margin-top:0.85rem`}>{walletNote}</div>}
+    </div>
+  </div>
+
+  <div style={`${sRail};border-top:1px solid ${FAINT}`}>{footnote}</div>
+
+  <figcaption style={`border-top:1px solid ${FAINT};padding:11px 14px;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a`}>{caption}</figcaption>
+</figure>

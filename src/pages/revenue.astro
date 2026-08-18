@@ -1,6 +1,6 @@
 ---
 import Page from '../layouts/Page.astro';
-import RevShareInheritanceDiagram from '../components/RevShareInheritanceDiagram.astro';
+import RevShareInheritancePlate from '../components/RevShareInheritancePlate.astro';
 import RevShareCohortDiagram from '../components/RevShareCohortDiagram.astro';
 
 const traits = [
@@ -93,30 +93,29 @@ const guarantees = [
 	<section class="section">
 		<div class="wrap">
 			<p class="eyebrow">The mechanism</p>
-			<h2>Where the money actually goes</h2>
+			<h2>Station's solution for fairness</h2>
 
 			<div class="prose">
 				<p class="lede">
-					Every Fan Club and Storefront contract you deploy has a payment splitter built into it.
+					Every artist contract has a payment splitter built into it.
 				</p>
 				<p>
-					When a fan mints a FanPin or buys a track, the payment lands in your contract and is
-					divided on the spot — your share, and Station's share, according to the split written into
-					that specific contract. Your share sits there until you withdraw it.
+					All funds flow through smart contracts, the payments land in artist-owned contracts and are
+					divided instantaneously — the artist's share, and Station's share, according to the split written into
+					that specific contract. Artist funds sit in this account until they withdraw them.
 				</p>
 				<p>
-					There's no invoice, no billing cycle, and no moment where Station holds your money and
-					passes some of it back. The division happens at payment time, inside a contract you own, on
-					a public ledger anyone can read. The splitter itself is
+					There's no invoice, no billing cycle, and no moment where Station holds the artists' funds.
+					The division happens at payment time. The splitter itself is
 					<a
 						href="https://docs.openzeppelin.com/contracts/4.x/api/finance#PaymentSplitter"
 						target="_blank"
 						rel="noopener noreferrer">OpenZeppelin's PaymentSplitter</a
-					> — audited, boring, and not something we invented.
+					> — audited, secure, and an industry standard.
 				</p>
 			</div>
 
-			<RevShareInheritanceDiagram />
+			<RevShareInheritancePlate />
 		</div>
 	</section>
 
@@ -128,21 +127,19 @@ const guarantees = [
 			<div class="two">
 				<div class="prose">
 					<p>
-						The split is written into your contract at deploy time. Station can change the rate it
+						Station can change the rate it
 						offers <em>new</em> contracts. It cannot reach into a contract you've already deployed and
 						take a larger share.
 					</p>
 					<p>
-						That's a small sentence with a lot behind it, and it's easiest to see next to how the
-						rest of the industry works. A streaming platform sets its terms in an agreement, and
+						In contrast, a streaming platform sets its terms in an agreement, and
 						reserves the right to change that agreement. The rate an artist starts at is a rate the
 						platform can revisit whenever its business needs it to. There's no recourse, because
-						there's nothing to enforce — the terms live on the platform's side of the relationship,
+						the terms live on the platform's side of the relationship,
 						and so does the ability to rewrite them.
 					</p>
 					<p>
-						Station isn't a platform in that sense. There's no agreement between us to revise,
-						because your split was never an agreement in the first place. It's a deployed artifact —
+						Station isn't a platform in that sense. Our agreement is a deployed artifact —
 						a number sitting in a contract you control. Our future intentions, funding pressures and
 						changes of heart are all irrelevant to it.
 					</p>
@@ -166,7 +163,7 @@ const guarantees = [
 		<div class="wrap">
 			<div class="head">
 				<div>
-					<p class="eyebrow">Today</p>
+					<p class="eyebrow">Launching at 0</p>
 					<h2>0% to Station. 100% to you.</h2>
 				</div>
 				<span class="split" aria-label="zero percent to Station, one hundred percent to you">
@@ -205,19 +202,15 @@ const guarantees = [
 
 			<div class="prose">
 				<p>
-					This falls out of the design rather than being bolted on, and it's the fairest version of
-					early access we could come up with.
+					Using Station today means betting on a new unproven model.
 				</p>
 				<p>
-					Deploying on Station today means betting on young software, a small network, and a project
-					still working out its own economics. That's a real risk, and it isn't one later artists will
-					take — by the time they arrive the thing will be proven, the network will be bigger, and the
-					ground will be more solid. They'll pay a slightly higher rate for that certainty.
+					That's a real risk, and it isn't one later artists will take.
+					Over time, Station will have more features and become more competitive
+					as a solution for musicians.
 				</p>
 				<p>
-					The rule is the same for everyone: whatever the split is on the day you deploy is the split
-					you keep, permanently. Artists joining at 1% | 99% hold 1% | 99% even after the rate has
-					moved past them, exactly as you hold 0% | 100%. Nobody's rate follows the network up.
+					The logic is similar to FanSociety, early adopters should be rewarded.
 				</p>
 			</div>
 

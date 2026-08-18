@@ -1,0 +1,229 @@
+---
+/**
+ * GenerationsPlate — HTML/CSS version of the FanPin generations plate.
+ * Replaces GenerationsDiagram.astro (SVG) where mobile matters.
+ *
+ * The plate and its caption only; the section, heading, lede and margin note
+ * live at the call site.
+ *
+ * WHY THIS IS NOT AN SVG
+ * The SVG version is a 1248px canvas scaled by `width: 100%`, so on a 390px
+ * phone its 11px labels render at ~3px. Here the text is real text: it reflows,
+ * holds its size, is selectable and searchable, and screen readers can read it.
+ *
+ * ============================================================================
+ * NO <style> BLOCK, NO CLASSES, NO CSS VARIABLES. ON PURPOSE.
+ * ============================================================================
+ * Same reason as NetworkArchitecturePlate: a scoped `<style>` block is not
+ * applied to these plates in the consuming site — one earlier attempt rendered
+ * with a previous version's rules, a rename rendered fully unstyled. Every rule
+ * is an inline style attribute and every colour is a literal rgba/hex rather
+ * than var(--rule) / var(--gray-dim). No ::before/::after either: the lane
+ * arrowheads are CSS triangles and the pins are bordered divs.
+ *
+ * THE TIME AXIS STAYS HORIZONTAL
+ * A career runs left to right, and the uneven boundary spacing IS the argument
+ * ("there is no schedule"). Stacking the generations as cards would throw that
+ * away. So the geometry is preserved and expressed in PERCENTAGES of the plot:
+ * `pct()` maps the SVG's x coordinates (200 = now, 1188 = the open right end,
+ * 50px per month) onto 0–100% of whatever width the plate gets. Lanes, pins,
+ * caps, boundary rules and axis ticks all read from the same mapping, so they
+ * stay aligned at every viewport. Pin positions are the SVG's exact ones.
+ *
+ * WHAT MOVED OUT OF THE PLOT, AND WHY
+ * In the SVG every label sat inside the canvas at x+12. Real 10px text cannot
+ * live inside a 290px-wide plot, so each generation's boundary label and lane
+ * label are now a two-line block ABOVE its lane, indented to the generation's own
+ * x — `calc(X% + 12px)`, at every width. An earlier version capped that indent to
+ * reserve 200px of reading width; it pulled the third generation's label left of
+ * the lane it names, which is worse than a wrapped label. If a label at a late
+ * indent wraps too hard on a phone, shorten the label — do not move the block.
+ *
+ * The dashed boundary rules span the whole lane block, as in the SVG. There they
+ * were broken into segments around each label band; here the label spans carry
+ * `background:#000` (the design system's own trick — a cell repainting black over
+ * a rule) and each generation block is `position:relative` so it paints AFTER the
+ * absolutely-positioned rules. Remove either and the dashes run through the type.
+ *
+ * The SVG's per-cap notes ("create new gen anytime, on the fly", "gen 2 locked
+ * in") are gone at the client's request — the notes rail below already makes both
+ * points, and anchoring them to a cap position crowds the lane on a phone.
+ *
+ * Seven tick labels collide below ~500px, so only now / 6 / 12 / 18 mo are
+ * labelled; 3 / 9 / 15 remain as unlabelled ticks. `tickLabelEvery` controls it.
+ *
+ * Generation 1 is the only mint element: it is the cohort the plate exists to
+ * explain. Everything else is white at 62%.
+ */
+interface Generation {
+  /** x where the artist opens this generation, in the SVG's coordinates. */
+  x: number;
+  /** The boundary label, above the lane label. */
+  boundaryLabel: string;
+  laneLabel: string;
+  /** x positions of pins minted while this generation was open. */
+  pins: number[];
+}
+
+interface Props {
+  title?: string;
+  subtitle?: string;
+  pinUnitLabel?: string;
+  generations?: Generation[];
+  ticks?: { x: number; label: string }[];
+  /** Label every Nth tick; the rest stay unlabelled. */
+  tickLabelEvery?: number;
+  notes?: string[];
+  caption?: string;
+  showBoundaries?: boolean;
+  showFirstGenAccent?: boolean;
+  class?: string;
+}
+
+const {
+  title = 'FanPin generations',
+  subtitle = 'FanSociety',
+  pinUnitLabel = '1 = 1 pin',
+  generations = [
+    {
+      x: 200,
+      boundaryLabel: 'Gen 1 opens',
+      laneLabel: 'Gen 1 — the first fans. Lifetime fan club members.',
+      pins: [230, 285, 340, 395],
+    },
+    {
+      x: 425,
+      boundaryLabel: 'Gen 2 opens — gen 1 closes',
+      laneLabel: 'Gen 2',
+      pins: [455, 515, 575, 640, 705, 770, 835],
+    },
+    {
+      x: 875,
+      boundaryLabel: '',
+      laneLabel: 'Gen 3',
+      pins: [905, 970, 1035, 1100, 1160],
+    },
+  ],
+  ticks = [
+    { x: 200, label: 'Now' },
+    { x: 350, label: '3 mo' },
+    { x: 500, label: '6 mo' },
+    { x: 650, label: '9 mo' },
+    { x: 800, label: '12 mo' },
+    { x: 950, label: '15 mo' },
+    { x: 1100, label: '18 mo' },
+  ],
+  tickLabelEvery = 2,
+  notes = [
+    'A generation opens when the artist chooses. There is no schedule and no set number of them.',
+  ],
+  caption = 'fanpin generations — boundaries are illustrative',
+  showBoundaries = true,
+  showFirstGenAccent = true,
+  class: className,
+} = Astro.props;
+
+// the SVG's plot ran x 200 → 1188; everything here is a percentage of that span
+const PLOT_START = 200;
+const PLOT_END = 1188;
+const pct = (x: number) => ((x - PLOT_START) / (PLOT_END - PLOT_START)) * 100;
+
+// each lane is capped where the next generation opens
+const lanes = generations.map((g, i) => ({
+  ...g,
+  mint: i === 0 && showFirstGenAccent,
+  capX: generations[i + 1]?.x,
+}));
+
+const HAIRLINE = 'rgba(255,255,255,0.62)';
+const AXIS = 'rgba(255,255,255,0.32)';
+const FAINT = 'rgba(255,255,255,0.16)';
+const MINT = '#adebb3';
+const PAD = 'clamp(1rem,3vw,1.75rem)';
+
+// a label block indents to its own lane's start at every width; alignment is the
+// point of the plate, so long labels wrap rather than pull the block leftward
+const labelIndent = (x: number) => `calc(${pct(x).toFixed(2)}% + 12px)`;
+// black ground so the dashed boundary rules do not run through the type
+const knockout = 'display:inline;background:#000;box-decoration-break:clone;padding:0 0.35rem 0 0';
+const sBoundary = `${knockout};font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8a8a;line-height:1.8`;
+const sLane = (mint: boolean) =>
+  `${knockout};font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;color:${mint ? MINT : '#ffffff'};line-height:1.8`;
+const sNote = 'font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a;line-height:1.9;text-wrap:pretty';
+const sAxisLabel = 'font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#8a8a8a';
+
+const pin = (x: number, color: string) =>
+  `position:absolute;left:${pct(x).toFixed(2)}%;top:8px;transform:translateX(-50%);width:10px;height:10px;box-sizing:border-box;border:2px solid ${color};border-radius:50%;background:#000`;
+---
+
+<figure
+  style="margin:0;border:1px solid rgba(255,255,255,0.16);background:#000;font-family:'JetBrains Mono', ui-monospace, monospace"
+  class={className}>
+
+  <div
+    style={`display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;justify-content:space-between;padding:1rem ${PAD};border-bottom:1px solid ${FAINT}`}>
+    <div>
+      <div style="font-size:0.66rem;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff;line-height:1.6">{title}</div>
+      <div style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a;line-height:1.7;margin-top:0.4rem">{subtitle}</div>
+    </div>
+    <div style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a;line-height:1.7">{pinUnitLabel}</div>
+  </div>
+
+  <div style={`padding:1.75rem ${PAD}`}>
+    <div style="position:relative">
+      {showBoundaries &&
+        generations.map((g) => (
+          <div
+            style={`position:absolute;left:${pct(g.x).toFixed(2)}%;top:0;bottom:0;width:0;border-left:1px dashed #5a5a5a`}>
+          </div>
+        ))}
+
+      {lanes.map((lane, i) => {
+        const color = lane.mint ? MINT : HAIRLINE;
+        return (
+          <div style={`position:relative${i ? ';margin-top:1.6rem' : ''}`}>
+            <div style={`margin-left:${labelIndent(lane.x)}`}>
+              {lane.boundaryLabel && <span style={sBoundary}>{lane.boundaryLabel}</span>}
+            </div>
+            <div style={`margin-left:${labelIndent(lane.x)};margin-top:0.3rem`}>
+              <span style={sLane(lane.mint)}>{lane.laneLabel}</span>
+            </div>
+
+            <!-- the lane runs from its opening to the right edge and keeps going -->
+            <div style="position:relative;height:26px;margin-top:0.6rem">
+              <div style={`position:absolute;left:${pct(lane.x).toFixed(2)}%;right:7px;top:12px;height:2px;background:${color}`}></div>
+              <div style={`position:absolute;right:0;top:8px;width:0;height:0;border-left:7px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent`}></div>
+              {lane.capX !== undefined && (
+                <div style={`position:absolute;left:${pct(lane.capX).toFixed(2)}%;top:3px;width:2px;height:20px;background:${color}`}></div>
+              )}
+              {lane.pins.map((x) => <div style={pin(x, color)}></div>)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <div style="margin-top:1.75rem">
+      <div style={`height:1px;background:${AXIS}`}></div>
+      <div style="position:relative;height:8px">
+        {ticks.map((t) => (
+          <div style={`position:absolute;left:${pct(t.x).toFixed(2)}%;top:0;width:1px;height:8px;background:${AXIS}`}></div>
+        ))}
+      </div>
+      <div style={`${sAxisLabel};position:relative;height:1rem;margin-top:0.5rem`}>
+        {ticks.map((t, i) =>
+          i % tickLabelEvery === 0 ? (
+            <div style={`position:absolute;left:${pct(t.x).toFixed(2)}%${i === 0 ? '' : ';transform:translateX(-50%)'}`}>{t.label}</div>
+          ) : null
+        )}
+      </div>
+    </div>
+  </div>
+
+  <div style={`padding:1rem ${PAD};border-top:1px solid ${FAINT}`}>
+    {notes.map((n) => <div style={sNote}>{n}</div>)}
+  </div>
+
+  <figcaption
+    style={`border-top:1px solid ${FAINT};padding:11px 14px;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#5a5a5a`}>{caption}</figcaption>
+</figure>
