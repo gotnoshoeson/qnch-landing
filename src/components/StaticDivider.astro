@@ -5,37 +5,42 @@
  * A spacer, not a figure: use it where a hairline rule would be too quiet,
  * between major sections. Full width, no wrap, no caption.
  *
- *   <StaticDivider />                        40px, black and white
+ *   <StaticDivider />                        72px, black and white
  *   <StaticDivider height={96} mint />       taller, with the mint speckle
  *   <StaticDivider density={0.5} fps={6} />  denser and slower
+ *
+ * The painting is done by src/scripts/staticField.ts, which is shared with
+ * the hero's static ground — see that file for how the noise is generated and
+ * why it is pre-rendered rather than drawn per frame.
  *
  * Notes on the defaults, since they are deliberate:
  *
  * - fps 12, not 60. Full-rate static reads as a video artifact; a slow redraw
  *   reads as printed grain that will not sit still. Raising it past ~20 makes
  *   it look like a broken screen rather than a xerox.
- * - pixelSize 3. The canvas is drawn at 1/3 scale and blown up with
- *   image-rendering: pixelated, so pixels are chunky like a CRT rather than
- *   fine like film grain. 1 gives you noise; 6+ gives you blocks.
+ * - pixelSize 3, matching the hero. The canvas is drawn at 1/3 scale and blown
+ *   up with image-rendering: pixelated, so pixels are chunky like a CRT rather
+ *   than fine like film grain. Keep this in step with the hero: if the two
+ *   differ, they stop reading as one motif and start reading as two effects.
  * - Pixels are drawn across a full grey ramp rather than pure black and white:
  *   lit pixels run 96-255, unlit ones 0-63. density decides which of the two
  *   ranges a pixel falls in, so it still controls how bright the band reads.
  * - mint is off by default. One mint element per view is the rule, so turn it
  *   on for at most one divider in a page — and not on a page that already
- *   spends its mint elsewhere.
+ *   spends its mint elsewhere, which the landing page does.
  *
  * Honours prefers-reduced-motion: paints a single frame and never animates.
  * The observer pauses the loop when the divider is offscreen.
  *
- * Self-contained. The <script> is bundled once per page and picks up every
- * instance, so any number of dividers can sit on the same page.
+ * Any number of dividers can sit on the same page; instances running the same
+ * density share one set of pre-rendered frames.
  */
 interface Props {
-  /** Band height in px. 40 is the standard section break. */
+  /** Band height in px. 72 is the standard section break. */
   height?: number;
   /** Tint ~14% of lit pixels mint (#adebb3) instead of white. */
   mint?: boolean;
-  /** Size of one drawn pixel in px — bigger is chunkier. */
+  /** Size of one drawn pixel in px — bigger is chunkier. Match the hero. */
   pixelSize?: number;
   /** Share of pixels lit on any given frame, 0-1. */
   density?: number;
@@ -47,7 +52,7 @@ interface Props {
 }
 
 const {
-  height = 40,
+  height = 72,
   mint = false,
   pixelSize = 3,
   density = 0.34,
@@ -59,7 +64,7 @@ const {
 
 <canvas
   class:list={['static-divider', className]}
-  data-static-divider
+  data-static-field
   data-px={pixelSize}
   data-density={density}
   data-fps={fps}
@@ -81,83 +86,7 @@ const {
 </style>
 
 <script>
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  import { mountStaticFields } from '../scripts/staticField';
 
-  document.querySelectorAll<HTMLCanvasElement>('[data-static-divider]').forEach((canvas) => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const px = Number(canvas.dataset.px) || 3;
-    const density = Number(canvas.dataset.density) || 0.34;
-    const fps = Number(canvas.dataset.fps) || 12;
-    const mint = canvas.dataset.mint === '1';
-
-    let w = 0, h = 0, image: ImageData, last = 0, raf = 0, visible = true;
-
-    // draw small, let CSS scale it up hard
-    const size = () => {
-      w = Math.max(1, Math.ceil(canvas.clientWidth / px));
-      h = Math.max(1, Math.ceil(canvas.clientHeight / px));
-      canvas.width = w;
-      canvas.height = h;
-      image = ctx.createImageData(w, h);
-    };
-
-    const paint = () => {
-      const d = image.data;
-      for (let i = 0; i < w * h; i++) {
-        const o = i * 4;
-        if (Math.random() < density) {
-          if (mint && Math.random() < 0.14) {
-            d[o] = 173; d[o + 1] = 235; d[o + 2] = 179;
-          } else {
-            // lit pixels run mid-grey to white
-            const v = 96 + ((Math.random() * 160) | 0);
-            d[o] = v; d[o + 1] = v; d[o + 2] = v;
-          }
-          d[o + 3] = 255;
-        } else {
-          // unlit pixels are not flat black — they carry the low end of the ramp
-          const v = (Math.random() * 64) | 0;
-          d[o] = v; d[o + 1] = v; d[o + 2] = v; d[o + 3] = 255;
-        }
-      }
-      ctx.putImageData(image, 0, 0);
-    };
-
-    const tick = (t: number) => {
-      if (t - last >= 1000 / fps) {
-        last = t;
-        paint();
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    const start = () => {
-      if (reduced || raf) return;
-      raf = requestAnimationFrame(tick);
-    };
-    const stop = () => {
-      cancelAnimationFrame(raf);
-      raf = 0;
-    };
-
-    size();
-    paint();
-    if (!reduced) start();
-
-    new IntersectionObserver((entries) => {
-      visible = entries[0].isIntersecting;
-      visible ? start() : stop();
-    }).observe(canvas);
-
-    let resizeTimer: number;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
-        size();
-        paint();
-      }, 120);
-    });
-  });
+  mountStaticFields();
 </script>
