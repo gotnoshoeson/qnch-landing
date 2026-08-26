@@ -2,42 +2,65 @@
 import SectionLink from './SectionLink.astro';
 ---
 
-<section class="section" id="ai">
+<section class="section section--quiet" id="ai">
 	<div class="wrap">
-		<span class="numeral" aria-hidden="true">07</span>
+		<div class="beat">
+			<div class="beat-head">
+				<p class="eyebrow">Artificial intelligence</p>
+				<h2>The elephant in the room</h2>
+			</div>
 
-		<p class="eyebrow">Artificial intelligence</p>
-		<h2>The elephant in the room</h2>
+			<div class="beat-body">
+				<p class="lede">
+					Love it or hate it, AI music is upon us. Station has a simple solution.	
+				</p>
+				<p>
+					Because Station lacks a recommendation engine you'll never be duped into consuming AI music unknowingly.
+				</p>
 
-		<div class="intro">
-			<p class="lede">
-				Love it or hate it, AI music is upon us. Station has a simple solution.	
-			</p>
-			<p>
-				Because Station lacks a recommendation engine you'll never be duped into consuming AI music unknowingly.
-			</p>
+				<SectionLink slug="ai" />
+			</div>
 		</div>
-
-		<SectionLink slug="ai" />
 	</div>
 </section>
 
 <style>
-	.intro {
-		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
-		padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
-		border-top: 1px solid var(--mint-rule);
+	/* Deliberately the quietest band on the page. It is a beat between the
+	   discovery argument and the call to action, not a chapter of its own, so
+	   it runs short and sets its heading beside the copy rather than over it.
+	   The half-scale heading comes from .section--quiet. */
+
+	.beat {
+		display: grid;
+		grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+		gap: clamp(2rem, 6vw, 5rem);
+		align-items: start;
 	}
 
-	.intro .lede {
-		max-width: 40ch;
+	.beat-head .eyebrow {
+		margin-bottom: 0.85rem;
 	}
 
-	.intro p + p {
+	.beat-head h2 {
+		max-width: 12ch;
+	}
+
+	.beat-body .lede {
+		max-width: 44ch;
+	}
+
+	.beat-body p + p {
 		margin-top: clamp(1.35rem, 2.5vw, 1.75rem);
 		font-size: 0.9rem;
 		line-height: 1.75;
 		color: rgba(255, 255, 255, 0.78);
 		max-width: 58ch;
+	}
+
+	@media (max-width: 52rem) {
+		.beat {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+		}
 	}
 </style>

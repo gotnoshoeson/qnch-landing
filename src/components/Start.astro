@@ -20,10 +20,8 @@ const routes = [
 ];
 ---
 
-<section class="section start noise" id="start">
+<section class="section start invert noise" id="start">
 	<div class="wrap">
-		<span class="numeral" aria-hidden="true">08</span>
-
 		<p class="eyebrow">Start</p>
 		<h2>the new way to DIY</h2>
 
@@ -57,8 +55,20 @@ const routes = [
 </section>
 
 <style>
+	/* The page's second and last hard cut. Money makes the argument on white;
+	   this closes on it. Everything below restates the light-on-dark defaults
+	   for the inverted ground — .invert itself is global, in Base.astro. */
+
 	.start {
 		padding-bottom: clamp(5rem, 12vw, 10rem);
+	}
+
+	/* The install command keeps its terminal colouring and sits on the white
+	   ground as a black plate — a cut-out on paper, not a recoloured box.
+	   :global because the markup belongs to InstallCommand. */
+	.start :global(.cmd) {
+		background: var(--black);
+		border-color: var(--black);
 	}
 
 	.cmd-wrap {
@@ -73,7 +83,7 @@ const routes = [
 		margin-top: 1.25rem;
 		font-size: 0.72rem;
 		line-height: 1.7;
-		color: var(--gray);
+		color: rgba(0, 0, 0, 0.6);
 		max-width: 54rem;
 	}
 
@@ -86,13 +96,13 @@ const routes = [
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 		gap: 1px;
-		background: var(--rule);
-		border: 1px solid var(--rule);
+		background: rgba(0, 0, 0, 0.22);
+		border: 1px solid rgba(0, 0, 0, 0.22);
 		margin-top: clamp(3rem, 6vw, 4.5rem);
 	}
 
 	.route {
-		background: var(--black);
+		background: var(--white);
 		padding: clamp(1.35rem, 2.5vw, 1.85rem);
 		text-decoration: none;
 		display: flex;
@@ -103,7 +113,7 @@ const routes = [
 
 	.route:hover,
 	.route:focus-visible {
-		background: rgba(173, 235, 179, 0.05);
+		background: rgba(21, 138, 63, 0.07);
 	}
 
 	.route-label {
@@ -111,7 +121,7 @@ const routes = [
 		font-size: 1.15rem;
 		text-transform: uppercase;
 		letter-spacing: -0.02em;
-		color: var(--mint);
+		color: #158a3f;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
@@ -130,6 +140,6 @@ const routes = [
 	.route-body {
 		font-size: 0.78rem;
 		line-height: 1.65;
-		color: var(--gray);
+		color: rgba(0, 0, 0, 0.62);
 	}
 </style>

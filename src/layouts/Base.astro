@@ -138,6 +138,77 @@ const ogImage = new URL(image, SITE).href;
 		position: relative;
 	}
 
+	/* ---- section modifiers ------------------------------------------- */
+
+	/* Runs to the window edge. For the one or two sections that should read as
+	   a surface in their own right rather than a block on the page. */
+	.section--bleed {
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	.section--bleed > .wrap {
+		max-width: none;
+	}
+
+	/* Inset heading/tail rows inside a bleed section, so type still lines up
+	   with the gutter while the content beneath it runs edge to edge. */
+	.section--bleed .inset {
+		padding-left: var(--gutter);
+		padding-right: var(--gutter);
+	}
+
+	/* A beat between chapters. Shorter band, quieter heading. */
+	.section--quiet {
+		--h2-size: clamp(1.5rem, 3.4vw, 2.5rem);
+		padding-top: clamp(2.75rem, 6vw, 4.5rem);
+		padding-bottom: clamp(2.75rem, 6vw, 4.5rem);
+	}
+
+	/* ---- hard-cut inversion ------------------------------------------ */
+
+	/* White ground, black type, mint swapped for a green that survives it.
+	   Two per page, spaced apart; any more and it stops being a cut. */
+	.invert {
+		background: var(--white);
+		color: var(--black);
+		border-top: 1px solid var(--black);
+	}
+
+	.invert .eyebrow {
+		color: #1c7f3e;
+	}
+
+	.invert .numeral {
+		-webkit-text-stroke: 1px rgba(0, 0, 0, 0.22);
+	}
+
+	.invert .lede {
+		color: var(--black);
+	}
+
+	.invert .dim {
+		color: rgba(0, 0, 0, 0.55);
+	}
+
+	.invert .mint {
+		color: #158a3f;
+	}
+
+	.invert .margin-note {
+		color: rgba(0, 0, 0, 0.6);
+		border-left-color: rgba(21, 138, 63, 0.45);
+	}
+
+	.invert .stamp {
+		color: #158a3f;
+		border-color: rgba(21, 138, 63, 0.45);
+	}
+
+	.invert .bleed-rule {
+		border-top-color: rgba(0, 0, 0, 0.2);
+	}
+
 	/* Oversized section numeral, deliberately half off-grid. */
 	.numeral {
 		font-family: var(--display);
@@ -170,7 +241,10 @@ const ogImage = new URL(image, SITE).href;
 		text-transform: uppercase;
 		letter-spacing: -0.03em;
 		line-height: 0.92;
-		font-size: clamp(2.25rem, 7vw, 5rem);
+		/* Sections set --h2-size to pick their own volume. The page reads flat
+		   when every heading shouts at the same level; a section that is a beat
+		   rather than a chapter should be set smaller. */
+		font-size: var(--h2-size, clamp(2.25rem, 7vw, 5rem));
 		max-width: 18ch;
 	}
 

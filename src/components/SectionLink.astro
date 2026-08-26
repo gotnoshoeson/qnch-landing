@@ -19,7 +19,6 @@ const show = meta?.ready === true;
 {
 	show && (
 		<a class="section-link" href={`/${meta!.slug}`}>
-			<span class="n">{meta!.n}</span>
 			<span class="text">{label ?? `read the full ${meta!.eyebrow.toLowerCase()}`}</span>
 			<span class="arrow" aria-hidden="true">
 				→
@@ -50,11 +49,6 @@ const show = meta?.ready === true;
 		border-top-color: var(--mint);
 	}
 
-	.n {
-		font-family: var(--display);
-		letter-spacing: 0.02em;
-		color: var(--mint);
-	}
 
 	.arrow {
 		font-family: var(--mono);

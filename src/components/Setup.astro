@@ -23,34 +23,55 @@ const steps = [
 
 <section class="section" id="setup">
 	<div class="wrap">
-		<span class="numeral" aria-hidden="true">02</span>
+		<div class="layout">
+			<div class="rail">
+				<p class="eyebrow">Setup</p>
+				<h2>DIY toolkit for DIY musicians</h2>
+			</div>
 
-		<p class="eyebrow">Setup</p>
-		<h2>DIY toolkit for DIY musicians</h2>
-
-		<ol class="steps">
-			{
-				steps.map((step) => (
-					<li class="step">
-						<span class="n" aria-hidden="true">
-							{step.n}
-						</span>
-						<div class="step-body">
-							<h3>{step.title}</h3>
-							<p>{step.body}</p>
-							<p class="note" set:html={step.note} />
-						</div>
-					</li>
-				))
-			}
-		</ol>
+			<ol class="steps">
+				{
+					steps.map((step) => (
+						<li class="step">
+							<span class="n" aria-hidden="true">
+								{step.n}
+							</span>
+							<div class="step-body">
+								<h3>{step.title}</h3>
+								<p>{step.body}</p>
+								<p class="note" set:html={step.note} />
+							</div>
+						</li>
+					))
+				}
+			</ol>
+		</div>
 	</div>
 </section>
 
 <style>
+	/* The heading rides alongside the steps in a rail that sticks while you
+	   read them, rather than sitting on top of the list like every other
+	   section. Set smaller than a chapter heading so it fits the rail. */
+	.layout {
+		--h2-size: clamp(1.75rem, 4vw, 3rem);
+		display: grid;
+		grid-template-columns: minmax(0, 19rem) minmax(0, 1fr);
+		gap: clamp(2rem, 5vw, 4.5rem);
+		align-items: start;
+	}
+
+	.rail {
+		position: sticky;
+		top: clamp(4.5rem, 9vh, 6rem);
+	}
+
 	.steps {
 		list-style: none;
-		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+	}
+
+	.step:first-child {
+		border-top: 0;
 	}
 
 	.step {
@@ -111,6 +132,17 @@ const steps = [
 
 	.note :global(a:hover) {
 		border-bottom-color: var(--mint);
+	}
+
+	@media (max-width: 56rem) {
+		.layout {
+			grid-template-columns: 1fr;
+			gap: clamp(2rem, 4vw, 2.75rem);
+		}
+
+		.rail {
+			position: static;
+		}
 	}
 
 	@media (max-width: 40rem) {

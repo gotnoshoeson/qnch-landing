@@ -4,16 +4,18 @@ import SectionLink from './SectionLink.astro';
 
 <section class="section" id="fansociety">
 	<div class="wrap">
-		<span class="numeral" aria-hidden="true">05</span>
+		<div class="head">
+			<div>
+				<p class="eyebrow">FanSociety</p>
+				<h2>Crowdfunding patronage for musicians and fans</h2>
+			</div>
 
-		<p class="eyebrow">FanSociety</p>
-		<h2>Crowdfunding patronage for musicians and fans</h2>
-
-		<div class="intro">
-			<p class="lede">
-				Though accessible, subscriptions are not durable.
-				We landed on a simple solution, a one time donation provides capital to artists and can also timestamp when a fan discovered an artist.
-			</p>
+			<div class="intro">
+				<p class="lede">
+					Though accessible, subscriptions are not durable.
+					We landed on a simple solution, a one time donation provides capital to artists and can also timestamp when a fan discovered an artist.
+				</p>
+			</div>
 		</div>
 
 		<div class="split">
@@ -54,8 +56,15 @@ import SectionLink from './SectionLink.astro';
 </section>
 
 <style>
-	.intro {
-		margin: clamp(1.5rem, 3vw, 2.25rem) 0 clamp(2.5rem, 5vw, 3.5rem);
+	/* Heading and lede share a row instead of stacking, then the two panels
+	   step out of line with each other — the second sits lower, so the pair
+	   reads as cut paper rather than a symmetrical two-up. */
+	.head {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: clamp(2rem, 5vw, 4rem);
+		align-items: end;
+		margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
 	}
 
 	.intro p + p {
@@ -72,16 +81,21 @@ import SectionLink from './SectionLink.astro';
 
 	.split {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-		gap: 1px;
-		background: var(--rule);
-		border: 1px solid var(--rule);
-		margin-bottom: 2rem;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: clamp(1.25rem, 3vw, 2.25rem);
+		align-items: start;
+		margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
 	}
 
 	.side {
+		border: 1px solid var(--rule);
 		background: var(--black);
 		padding: clamp(1.5rem, 3vw, 2.25rem);
+	}
+
+	/* The step out of line. Deliberate, not a wrapping accident. */
+	.side:nth-child(2) {
+		margin-top: clamp(2rem, 5vw, 4.5rem);
 	}
 
 	.side-head {
@@ -132,5 +146,21 @@ import SectionLink from './SectionLink.astro';
 		width: 0.6rem;
 		height: 1px;
 		background: var(--mint);
+	}
+
+	@media (max-width: 56rem) {
+		.head {
+			grid-template-columns: 1fr;
+			gap: clamp(1.5rem, 3vw, 2.25rem);
+			align-items: start;
+		}
+
+		.split {
+			grid-template-columns: 1fr;
+		}
+
+		.side:nth-child(2) {
+			margin-top: 0;
+		}
 	}
 </style>

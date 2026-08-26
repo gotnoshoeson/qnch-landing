@@ -48,15 +48,15 @@ const rows = [
 ];
 ---
 
-<section class="section" id="dashboard">
+<section class="section section--bleed" id="dashboard">
 	<div class="wrap">
-		<span class="numeral" aria-hidden="true">03</span>
-
-		<p class="eyebrow">The dashboard</p>
-		<h2>Artist controls</h2>
-		<p class="lede intro">
-			Everything below ships today and runs on your own server, behind your own login.
-		</p>
+		<div class="head inset">
+			<p class="eyebrow">The dashboard</p>
+			<h2>Artist controls</h2>
+			<p class="lede intro">
+				Everything below ships today and runs on your own server, behind your own login.
+			</p>
+		</div>
 
 		<div class="swap">
 			<div class="tabs" role="tablist" aria-label="Artist dashboard features" aria-orientation="vertical">
@@ -91,8 +91,8 @@ const rows = [
 							<Image
 								src={row.shot}
 								alt={`The ${row.name} page of the Station artist dashboard.`}
-								widths={[480, 640, 900, 1280]}
-								sizes="(max-width: 62rem) 100vw, 640px"
+								widths={[480, 640, 900, 1280, 1600]}
+								sizes="(max-width: 62rem) 100vw, 55vw"
 								loading={i === 0 ? 'eager' : 'lazy'}
 								decoding="async"
 							/>
@@ -103,21 +103,27 @@ const rows = [
 			</div>
 		</div>
 
-		<SectionLink slug="dashboard" />
+		<div class="tail inset">
+			<SectionLink slug="dashboard" />
+		</div>
 	</div>
 </section>
 
 <style>
+	/* The largest thing on the page, so it gets to be a surface rather than a
+	   block: the row list stays on the gutter, the screenshot plate runs off
+	   the right edge of the window as if the app continued past it. */
 	.intro {
 		margin-top: 1.25rem;
 	}
 
 	.swap {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
 		gap: clamp(1.5rem, 4vw, 3.5rem);
 		align-items: start;
 		margin-top: clamp(2.5rem, 5vw, 3.5rem);
+		padding-left: var(--gutter);
 	}
 
 	/* ---- the row list, doubling as the control ---------------------- */
@@ -192,6 +198,8 @@ const rows = [
 	.shot {
 		grid-area: 1 / 1;
 		border: 1px solid var(--rule);
+		/* No right edge — the plate is cut off by the window, not framed. */
+		border-right: 0;
 		background: var(--black);
 
 		opacity: 0;
@@ -239,9 +247,18 @@ const rows = [
 		border-top: 1px solid var(--rule);
 	}
 
+	.tail {
+		margin-top: clamp(0.5rem, 1.5vw, 1rem);
+	}
+
 	@media (max-width: 62rem) {
 		.swap {
 			grid-template-columns: 1fr;
+			padding-right: var(--gutter);
+		}
+
+		.shot {
+			border-right: 1px solid var(--rule);
 		}
 
 		/* Show the screenshot before the wall of copy on narrow screens. */
