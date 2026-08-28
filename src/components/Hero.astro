@@ -1,7 +1,3 @@
----
-import InstallCommand from './InstallCommand.astro';
----
-
 <section class="hero noise">
 	<canvas
 		class="hero-static"
@@ -26,22 +22,15 @@ import InstallCommand from './InstallCommand.astro';
 
 		<p class="lede hero-lede">
 			<span class="plate"
-				>Station is a music streaming network for the DIY minded. Fans stream <strong
-					>directly off your machine</strong
-				>. Payments are minimally extractive.</span
+				>QNCH lets musicians DIY, together.<br
+				/>No subscriptions, no AI trickery.</span
 			>
 		</p>
 
-		<InstallCommand id="hero-command" />
-
-		<p class="fineprint">
+		<p class="lede hero-lede hero-join">
 			<span class="plate"
-				>Preview and tinker for free. Everything works exactly as it will at launch, on a network
-				built for practice. <a
-				href="https://docs.qnch.network"
-				target="_blank"
-					rel="noopener noreferrer">Read the docs →</a
-				></span
+				>Join the New-New way for musicians to retain control of their lives, careers, and
+				communities.</span
 			>
 		</p>
 	</div>
@@ -160,7 +149,7 @@ import InstallCommand from './InstallCommand.astro';
 	.join {
 		position: absolute;
 		left: 50%;
-		top: 50%;
+		top: 80%;
 		transform: translate(-50%, -50%) rotate(-1.5deg);
 		background: var(--black);
 		border: 1px solid var(--mint-rule);
@@ -180,39 +169,13 @@ import InstallCommand from './InstallCommand.astro';
 	.hero-lede {
 		line-height: 1.7;
 		max-width: 52ch;
-		margin: 0 auto clamp(2rem, 4vw, 2.75rem);
-	}
-
-	.hero-lede strong {
-		font-weight: 700;
-		color: var(--white);
-	}
-
-	/* Centred as a block, but a terminal command still reads left to right.
-	   :global because the markup belongs to InstallCommand. */
-	.hero :global(.cmd) {
-		background: var(--black);
 		margin: 0 auto;
-		text-align: left;
 	}
 
-	.fineprint {
-		margin: 1.25rem auto 0;
-		font-size: 0.75rem;
-		line-height: 1.7;
-		color: rgba(255, 255, 255, 0.92);
-		max-width: 56ch;
-	}
-
-	.fineprint a {
-		color: var(--mint);
-		text-decoration: none;
-		white-space: nowrap;
-	}
-
-	.fineprint a:hover {
-		text-decoration: underline;
-		text-underline-offset: 0.2em;
+	/* Its own unit rather than a third line of the block above — the gap has to
+	   clear the plates, which sit tight to the type on every line. */
+	.hero-join {
+		margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
 	}
 
 	.scroll-hint {
@@ -249,6 +212,10 @@ import InstallCommand from './InstallCommand.astro';
 		.half:first-child {
 			border-right: 0;
 			border-bottom: 1px solid var(--rule-strong);
+		}
+
+		.join {
+			top: 50%;
 		}
 
 		.scroll-hint {
