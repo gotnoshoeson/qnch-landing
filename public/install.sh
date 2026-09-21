@@ -635,7 +635,7 @@ WATCHTOWER_EOF
   # picks a chain in the dashboard. So this starts with everything else and
   # waits, rather than needing a second `docker compose up` later.
   eth-rpc:
-    image: ghcr.io/gotnoshoeson/station-ethrpc:edge
+    image: ghcr.io/gotnoshoeson/station:ethrpc-edge
     container_name: station-eth-rpc
     restart: unless-stopped
 
