@@ -514,6 +514,11 @@ services:
       # Chain override (optional): polkadot-hub | kusama-hub | paseo | local | local-dummy.
       # Leave unset to pick the chain from the artist dashboard instead.
       - STATION_CHAIN=${STATION_CHAIN:-}
+      # Local eth-rpc sidecar: where Station writes the backend it wants the
+      # sidecar running on, and reads the sidecar's answer back. Empty unless
+      # the wizard provisioned a sidecar, and empty makes the whole subsystem
+      # inert — the node behaves exactly as it did before.
+      - STATION_ETHRPC_CONTROL_DIR=${STATION_ETHRPC_CONTROL_DIR:-}
       - STATION_BOOTSTRAP_PEERS=${STATION_BOOTSTRAP_PEERS}
       - STATION_ANNOUNCE_ADDRS=${STATION_ANNOUNCE_ADDRS}
       - TZ=${TZ:-UTC}
@@ -612,6 +617,63 @@ WATCHTOWER_EOF
         print_success "Added Watchtower service to docker-compose.yml"
     fi
 
+    # Add the local eth-rpc sidecar if enabled
+    if [ "$ENABLE_ETHRPC" = true ]; then
+        cat >> docker-compose.yml << 'ETHRPC_EOF'
+
+  # eth-rpc - the artist's own blockchain indexer.
+  #
+  # This is Station's wrapper image: the pinned upstream eth-rpc binary plus a
+  # small supervisor that owns the process. eth-rpc's --node-rpc-url is read
+  # once at process start, so changing which Substrate provider it reads from
+  # means restarting it — and nothing in Station may talk to the Docker socket.
+  # The supervisor watches /control/backend.json and does the restart from
+  # inside the container instead. See docs/ETHRPC_ENDPOINT_ARCHITECTURE.md § 7d.
+  #
+  # No `profiles:` gating and no --node-rpc-url here on purpose: the supervisor
+  # idles happily until Station writes a backend, which happens once the artist
+  # picks a chain in the dashboard. So this starts with everything else and
+  # waits, rather than needing a second `docker compose up` later.
+  eth-rpc:
+    image: ghcr.io/gotnoshoeson/station-ethrpc:edge
+    container_name: station-eth-rpc
+    restart: unless-stopped
+
+    # NO ports: — deliberately unpublished. The station container reaches this
+    # over the internal bridge as http://eth-rpc:8545, exactly like station's
+    # own 8080. Nothing outside the project can reach it, which is also what
+    # makes the supervisor's --rpc-cors=all safe (that flag gates Host-header
+    # validation, not just browser origins — without it cross-container calls
+    # are refused). If a host port is ever published here, revisit that flag.
+    volumes:
+      - ./data/eth-rpc/db:/data          # eth-rpc.db (+ -wal/-shm)
+      - ./data/eth-rpc/control:/control  # backend.json in, backend.status.json out
+
+    # Measured steady state is ~22-45MB RSS and ~0.85% of one core, so these are
+    # a blast-radius bound rather than a tight fit.
+    mem_limit: 256m
+    cpus: 0.5
+
+    # Kept in Watchtower's scope, same as the station container. The two halves
+    # share a versioned file contract, so letting them update on the same cycle
+    # keeps them in step; pinning one and not the other is what would let them
+    # drift apart. A restart is safe by construction — eth-rpc resumes from its
+    # sync_state checkpoint and fills exactly the gap.
+    labels:
+      - "com.centurylinklabs.watchtower.scope=station"
+
+    networks:
+      - station-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+ETHRPC_EOF
+        print_success "Added eth-rpc service to docker-compose.yml"
+    fi
+
     # Top-level networks block MUST be appended last: it has to come after
     # every service (including the optional Watchtower service above), or
     # whatever service block was last in the file ends up nested under
@@ -672,6 +734,25 @@ if [ "$EUID" -ne 0 ]; then
     echo "Please run: sudo $0"
     exit 1
 fi
+
+# ============================================================================
+# Architecture gate (local eth-rpc)
+# ============================================================================
+# Runs before any prompt, including the reconfigure check below, so an arm64
+# host is told why up front instead of hitting a confusing platform-mismatch
+# error deep inside `docker compose up` after the whole wizard has run.
+#
+# This does NOT abort the install: Station itself is architecture-independent.
+# It only decides whether the local eth-rpc option is offered at all, because
+# the upstream parity/eth-rpc image is amd64-only across every published tag.
+ETHRPC_ARCH_SUPPORTED=true
+HOST_ARCH="$(uname -m)"
+case "$HOST_ARCH" in
+    x86_64|amd64) ;;
+    *)
+        ETHRPC_ARCH_SUPPORTED=false
+        ;;
+esac
 
 # Check if already configured
 if [ -f "$PROJECT_ROOT/.env" ]; then
@@ -1037,6 +1118,46 @@ fi
 echo ""
 
 # ============================================================================
+# Step 5b: Local eth-rpc adapter
+# ============================================================================
+ENABLE_ETHRPC=false
+if [ "$ETHRPC_ARCH_SUPPORTED" = true ]; then
+    print_step "Your own blockchain indexer"
+    echo ""
+    if [ "$GUM_AVAILABLE" = true ]; then
+        cat << 'ETHRPC_INFO' | gum format
+Station can run its own **blockchain indexer** alongside your node, so the
+record of your sales lives on your own server instead of depending entirely on
+someone else's.
+
+* Uses about 45MB of memory and well under 1% of a CPU core
+* Reads from free public providers — no account, no API key, nothing to pay for
+* If one provider goes down, your node moves to the next one on its own
+* Falls back to public indexers automatically if you skip this
+ETHRPC_INFO
+    else
+        echo "Station can run its own blockchain indexer, so the record of your"
+        echo "sales lives on your own server rather than someone else's."
+        echo ""
+        echo "  - About 45MB of memory, well under 1% of a CPU core"
+        echo "  - Reads from free public providers (no account or API key)"
+        echo "  - Moves to another provider on its own if one goes down"
+        echo "  - Falls back to public indexers automatically if you skip this"
+    fi
+    echo ""
+    if gum_confirm "Run your own blockchain indexer?" "yes"; then
+        ENABLE_ETHRPC=true
+        print_success "Your node will run its own indexer"
+    else
+        print_info "Skipping. Your node will use public indexers."
+    fi
+else
+    print_info "Skipping the local blockchain indexer: it is only published for x86_64, and this machine is $HOST_ARCH."
+    print_info "Station itself runs fine here — your node will use public indexers instead."
+fi
+echo ""
+
+# ============================================================================
 # Step 6: Create Directory Structure
 # ============================================================================
 
@@ -1047,6 +1168,15 @@ cd "$PROJECT_ROOT"
 mkdir -p data
 mkdir -p traefik
 mkdir -p logs
+
+# Local eth-rpc sidecar directories, created before the chown below so the
+# existing recursive `chown -R 1000:1000 data` covers them with no extra step.
+# The wrapper image deliberately runs as UID 1000 (not the upstream image's
+# 1001) precisely so both containers share these at ordinary permissions.
+if [ "$ENABLE_ETHRPC" = true ]; then
+    mkdir -p data/eth-rpc/db
+    mkdir -p data/eth-rpc/control
+fi
 
 # The station container runs as a non-root user, UID:GID 1000:1000 (see
 # Dockerfile: `addgroup -g 1000 station && adduser -u 1000 -G station`).
@@ -1092,6 +1222,13 @@ else
 fi
 
 # Generate .env file
+# Only point Station at a control directory when a sidecar actually exists.
+if [ "$ENABLE_ETHRPC" = true ]; then
+    ETHRPC_CONTROL_LINE="/data/eth-rpc/control"
+else
+    ETHRPC_CONTROL_LINE=""
+fi
+
 cat > .env << EOF
 # Station Domain Configuration
 STATION_DOMAIN=$STATION_DOMAIN
@@ -1122,6 +1259,12 @@ STATION_NETWORK=$NETWORK
 # this directly. A chain that doesn't belong to STATION_NETWORK's environment
 # is silently ignored by the node (falls back to chain-less).
 $CHAIN_LINE
+
+# Local eth-rpc sidecar control directory (inside the station container).
+# Set only when the wizard provisioned the sidecar. Empty or unset makes the
+# whole local-indexer subsystem inert, which is the correct state for a node
+# that uses public indexers.
+STATION_ETHRPC_CONTROL_DIR=$ETHRPC_CONTROL_LINE
 
 # Bootstrap peers (comma-separated multiaddrs) — OVERRIDE ONLY.
 # Leave unset to use the network's built-in seeds (from the committed profile).
