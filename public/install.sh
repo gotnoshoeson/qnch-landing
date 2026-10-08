@@ -519,6 +519,10 @@ services:
       # the wizard provisioned a sidecar, and empty makes the whole subsystem
       # inert — the node behaves exactly as it did before.
       - STATION_ETHRPC_CONTROL_DIR=${STATION_ETHRPC_CONTROL_DIR:-}
+      # Update trigger: where Station asks Watchtower to update, and the bearer
+      # token it presents. Watchtower is reachable only on station-network.
+      - STATION_WATCHTOWER_URL=http://watchtower:8080
+      - STATION_WATCHTOWER_TOKEN=${WATCHTOWER_HTTP_API_TOKEN:-}
       - STATION_BOOTSTRAP_PEERS=${STATION_BOOTSTRAP_PEERS}
       - STATION_ANNOUNCE_ADDRS=${STATION_ANNOUNCE_ADDRS}
       - TZ=${TZ:-UTC}
@@ -575,11 +579,14 @@ services:
         condition: service_healthy
 COMPOSE_EOF
 
-    # Add Watchtower service if enabled
-    if [ "$ENABLE_WATCHTOWER" = true ]; then
-        cat >> docker-compose.yml << 'WATCHTOWER_EOF'
+    # Add the Watchtower service (always installed; idle until Station asks)
+    cat >> docker-compose.yml << 'WATCHTOWER_EOF'
 
-  # Watchtower - Automatic Docker Image Updates
+  # Watchtower - Docker Image Updates, on request only
+  # Runs in HTTP API update mode: it never polls on its own and updates only
+  # when Station calls POST /v1/update with the bearer token. Which updates
+  # happen is decided by the update preference in the dashboard. No ports are
+  # published: the API is reachable only on station-network.
   # nickfedor/watchtower is the maintained fork; containrrr is archived (2025) and
   # its last image (2023) speaks a Docker API too old for Engine v29+ (client 1.25 < min 1.40).
   watchtower:
@@ -597,7 +604,11 @@ COMPOSE_EOF
 
     environment:
       - WATCHTOWER_SCOPE=station
-      - WATCHTOWER_POLL_INTERVAL=21600
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      # Required: Watchtower refuses to start with an empty token.
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_HTTP_API_TOKEN:?run setup-station.sh to generate the Watchtower token}
+      # Explicitly off, so an API-mode Watchtower never updates by itself.
+      - WATCHTOWER_HTTP_API_PERIODIC_POLLS=false
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_STOPPED=false
       - WATCHTOWER_NO_RESTART=false
@@ -614,8 +625,7 @@ COMPOSE_EOF
         max-size: "5m"
         max-file: "2"
 WATCHTOWER_EOF
-        print_success "Added Watchtower service to docker-compose.yml"
-    fi
+    print_success "Added Watchtower service to docker-compose.yml"
 
     # Add the local eth-rpc sidecar if enabled
     if [ "$ENABLE_ETHRPC" = true ]; then
@@ -675,7 +685,7 @@ ETHRPC_EOF
     fi
 
     # Top-level networks block MUST be appended last: it has to come after
-    # every service (including the optional Watchtower service above), or
+    # every service (including the Watchtower service above), or
     # whatever service block was last in the file ends up nested under
     # networks: instead of services: (invalid compose, services silently
     # fail to start). See docker-compose.yml networks.watchtower bug.
@@ -1083,41 +1093,6 @@ print_info "Let's Encrypt limits you to 5 duplicate certificates per week."
 echo ""
 
 # ============================================================================
-# Step 5: Automatic Updates (Watchtower)
-# ============================================================================
-
-print_step "Automatic Updates"
-echo ""
-
-if [ "$GUM_AVAILABLE" = true ]; then
-    cat << 'WATCHTOWER_INFO' | gum format
-**Watchtower** can automatically update your Station node when new versions are released.
-
-* Checks for new Docker images every 6 hours
-* Pulls and restarts the Station container automatically
-* Only updates the Station container (not Traefik)
-* Can be disabled later via the dashboard
-WATCHTOWER_INFO
-else
-    echo "Watchtower can automatically update your Station node when new versions are released."
-    echo ""
-    echo "  - Checks for new Docker images every 6 hours"
-    echo "  - Pulls and restarts the Station container automatically"
-    echo "  - Only updates the Station container (not Traefik)"
-    echo "  - Can be disabled later via the dashboard"
-fi
-echo ""
-
-ENABLE_WATCHTOWER=false
-if gum_confirm "Enable automatic updates via Watchtower?" "yes"; then
-    ENABLE_WATCHTOWER=true
-    print_success "Watchtower will be enabled"
-else
-    print_info "Watchtower will not be installed. You can update manually via the dashboard."
-fi
-echo ""
-
-# ============================================================================
 # Step 5b: Local eth-rpc adapter
 # ============================================================================
 ENABLE_ETHRPC=false
@@ -1229,6 +1204,21 @@ else
     ETHRPC_CONTROL_LINE=""
 fi
 
+# Watchtower HTTP API token: Station presents it to ask Watchtower for an
+# update. Keep the existing one when re-running over an old .env so an
+# installed node is not rotated out from under its running containers.
+WATCHTOWER_TOKEN=""
+if [ -f .env ]; then
+    WATCHTOWER_TOKEN=$(grep -E '^WATCHTOWER_HTTP_API_TOKEN=.+' .env | head -n1 | cut -d= -f2-)
+fi
+if [ -z "$WATCHTOWER_TOKEN" ]; then
+    if command -v openssl &> /dev/null; then
+        WATCHTOWER_TOKEN=$(openssl rand -hex 32)
+    else
+        WATCHTOWER_TOKEN=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    fi
+fi
+
 cat > .env << EOF
 # Station Domain Configuration
 STATION_DOMAIN=$STATION_DOMAIN
@@ -1265,6 +1255,11 @@ $CHAIN_LINE
 # whole local-indexer subsystem inert, which is the correct state for a node
 # that uses public indexers.
 STATION_ETHRPC_CONTROL_DIR=$ETHRPC_CONTROL_LINE
+
+# Watchtower HTTP API token. Station sends it as a bearer token to ask
+# Watchtower for an update; Watchtower only listens on the internal Docker
+# network and never updates on its own timer. Treat it like a password.
+WATCHTOWER_HTTP_API_TOKEN=$WATCHTOWER_TOKEN
 
 # Bootstrap peers (comma-separated multiaddrs) — OVERRIDE ONLY.
 # Leave unset to use the network's built-in seeds (from the committed profile).
