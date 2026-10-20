@@ -427,6 +427,10 @@ install_docker_ubuntu() {
     return 0
 }
 
+# Station node image: single source for both the generated compose file and the
+# bootnode lookup in the "Joining the network" step.
+STATION_IMAGE="ghcr.io/gotnoshoeson/station:edge"
+
 # Docker Compose configuration generation
 generate_docker_compose() {
     print_step "Generating docker-compose.yml..."
@@ -482,7 +486,7 @@ services:
 
   # Station Artist Node - P2P Music Streaming Backend
   station:
-    image: ghcr.io/gotnoshoeson/station:edge
+    image: __STATION_IMAGE__
     container_name: station-node
     restart: unless-stopped
 
@@ -578,6 +582,9 @@ services:
       traefik:
         condition: service_healthy
 COMPOSE_EOF
+
+    # The heredoc above is quoted, so fill in the image reference afterwards.
+    sed -i "s|__STATION_IMAGE__|${STATION_IMAGE}|" docker-compose.yml
 
     # Add the Watchtower service (always installed; idle until Station asks)
     cat >> docker-compose.yml << 'WATCHTOWER_EOF'
@@ -1133,6 +1140,160 @@ fi
 echo ""
 
 # ============================================================================
+# Step 5c: Joining the network (entry node)
+# ============================================================================
+# Validate and tidy a comma-separated list of libp2p multiaddrs. Prints the
+# cleaned list (whitespace trimmed, empty entries dropped, joined by ",") and
+# returns 0 when every entry looks like a node address; returns 1 otherwise.
+# Deliberately light: each entry must start with "/", contain "/p2p/" followed
+# by a peer ID beginning 12D3KooW or Qm, and contain "/tcp/" or "/udp/".
+# The node does the real parsing; this only catches typos and pasted junk.
+normalize_node_addrs() {
+    local raw="$1" part out=""
+    local -a parts
+    IFS=',' read -r -a parts <<< "$raw"
+    for part in "${parts[@]}"; do
+        # Trim leading/trailing whitespace
+        part="${part#"${part%%[![:space:]]*}"}"
+        part="${part%"${part##*[![:space:]]}"}"
+        [ -z "$part" ] && continue
+        [[ "$part" == /* ]] || return 1
+        [[ "$part" =~ /p2p/(12D3KooW|Qm)[A-Za-z0-9]+$ ]] || return 1
+        [[ "$part" == */tcp/* || "$part" == */udp/* ]] || return 1
+        out="${out:+$out,}$part"
+    done
+    echo "$out"
+}
+
+# Accept the output of `station bootstrap-peers` only if every non-empty line
+# looks like a multiaddr ("/" first, contains "/p2p/"). Prints the non-empty
+# lines and returns 0 (an empty list is valid: prints nothing, returns 0);
+# returns 1 for anything else, e.g. the log lines a starting node would print.
+parse_bootnode_list() {
+    local line
+    while IFS= read -r line; do
+        line="${line%$'\r'}"
+        [[ -z "${line//[[:space:]]/}" ]] && continue
+        [[ "$line" == /* && "$line" == */p2p/* ]] || return 1
+        echo "$line"
+    done <<< "$1"
+    return 0
+}
+
+# Is one bootnode address reachable?
+#  /dns4|dns|dns6/<host>/tcp/443/wss/p2p/<id>: GET https://<host>/api/v1/node/info
+#     (8s timeout, one retry); reachable only if the body contains that peer ID.
+#  Any other shape with a /tcp/ port: plain TCP connect to host:port (5s).
+#  Anything else (e.g. UDP-only) cannot be tested here and counts as unreachable.
+bootnode_addr_reachable() {
+    local addr="$1" host port id body attempt
+    if [[ "$addr" =~ ^/(dns4|dns6|dns)/([^/]+)/tcp/443/wss/p2p/([A-Za-z0-9]+)$ ]]; then
+        host="${BASH_REMATCH[2]}"
+        id="${BASH_REMATCH[3]}"
+        for attempt in 1 2; do
+            body=$(curl -fsS -m 8 "https://${host}/api/v1/node/info" 2>/dev/null || true)
+            if [ -n "$body" ] && grep -qF -- "$id" <<< "$body"; then
+                return 0
+            fi
+        done
+        return 1
+    fi
+    if [[ "$addr" =~ ^/(ip4|ip6|dns4|dns6|dns)/([^/]+)/tcp/([0-9]+) ]]; then
+        host="${BASH_REMATCH[2]}"
+        port="${BASH_REMATCH[3]}"
+        timeout 5 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$host" "$port" >/dev/null 2>&1
+        return $?
+    fi
+    return 1
+}
+
+# The bootnode counts as reachable if ANY address in the (newline-separated)
+# list passes.
+bootnodes_reachable() {
+    local addr
+    while IFS= read -r addr; do
+        [ -z "$addr" ] && continue
+        if bootnode_addr_reachable "$addr"; then
+            return 0
+        fi
+    done <<< "$1"
+    return 1
+}
+
+# Ask the Station image which bootnodes this network has built in. Sets
+# BUILTIN_BOOTNODES (newline-separated, possibly empty) and returns 0, or
+# returns 1 for "could not determine" (pull failed, timeout, nonzero exit, or
+# output that isn't a list). An image older than the `bootstrap-peers`
+# subcommand would ignore it and START A NODE, hence the timeout, the probe
+# container's fixed name (so it can be removed), and the strict output check.
+BUILTIN_BOOTNODES=""
+fetch_builtin_bootnodes() {
+    local out
+    BUILTIN_BOOTNODES=""
+    gum_spin "Fetching Station..." docker pull -q "$STATION_IMAGE" || return 1
+    if ! out=$(timeout 20 docker run --rm --name station-bootnode-probe \
+            -e STATION_NETWORK="$NETWORK" "$STATION_IMAGE" station bootstrap-peers 2>/dev/null); then
+        docker rm -f station-bootnode-probe >/dev/null 2>&1 || true
+        return 1
+    fi
+    BUILTIN_BOOTNODES=$(parse_bootnode_list "$out") || return 1
+}
+
+# BOOTSTRAP_PEERS_VALUE stays empty (STATION_BOOTSTRAP_PEERS unset, node uses
+# its built-in list) unless an address is saved or entered below.
+BOOTSTRAP_PEERS_VALUE=""
+ENTRY_NODE_SUMMARY="built-in"
+
+EXISTING_BOOTSTRAP=""
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    EXISTING_BOOTSTRAP=$(grep -E '^STATION_BOOTSTRAP_PEERS=.+' "$PROJECT_ROOT/.env" | head -n1 | cut -d= -f2- || true)
+fi
+
+print_step "Joining the network"
+echo ""
+if [ -n "$EXISTING_BOOTSTRAP" ]; then
+    # Re-run over an existing install: keep the saved entry node (incl. "none").
+    BOOTSTRAP_PEERS_VALUE="$EXISTING_BOOTSTRAP"
+    ENTRY_NODE_SUMMARY="$EXISTING_BOOTSTRAP"
+    print_info "Keeping your saved entry node: $EXISTING_BOOTSTRAP"
+elif fetch_builtin_bootnodes; then
+    BOOTNODE_LIST_EMPTY=false
+    [ -z "$BUILTIN_BOOTNODES" ] && BOOTNODE_LIST_EMPTY=true
+
+    if [ "$BOOTNODE_LIST_EMPTY" = false ] && bootnodes_reachable "$BUILTIN_BOOTNODES"; then
+        print_success "Station's bootnode is reachable."
+    else
+        if [ "$BOOTNODE_LIST_EMPTY" = true ]; then
+            echo "This network has no built-in bootnode yet."
+        else
+            echo "Station's original bootnode cannot be reached, but you can still join the network."
+        fi
+        echo "Your node can join through any other Station node instead. Ask an artist who runs one to open their dashboard, go to Settings, and copy their Node address."
+        echo "Paste it here, or press Enter to continue without one and add it later."
+        echo ""
+        while true; do
+            node_addr_input=$(gum_input "Node address:" "/dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW...")
+            if BOOTSTRAP_PEERS_VALUE=$(normalize_node_addrs "$node_addr_input"); then
+                break
+            fi
+            print_error "That doesn't look like a node address. It should look like: /dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW..."
+        done
+        if [ -n "$BOOTSTRAP_PEERS_VALUE" ]; then
+            ENTRY_NODE_SUMMARY="$BOOTSTRAP_PEERS_VALUE"
+            print_success "Your node will join the network through: $BOOTSTRAP_PEERS_VALUE"
+        else
+            ENTRY_NODE_SUMMARY="none yet"
+            if [ "$BOOTNODE_LIST_EMPTY" = true ]; then
+                print_warning "Your node will start, but it won't be on the network until you add a node address. To add one later, run this installer again."
+            else
+                print_warning "Your node will start, but it won't be on the network until the original bootnode is back or you add a node address. To add one later, run this installer again."
+            fi
+        fi
+    fi
+fi
+echo ""
+
+# ============================================================================
 # Step 6: Create Directory Structure
 # ============================================================================
 
@@ -1219,6 +1380,13 @@ if [ -z "$WATCHTOWER_TOKEN" ]; then
     fi
 fi
 
+# Only written (uncommented) when the wizard saved or kept an entry node;
+# otherwise the line stays commented and the node uses its built-in list.
+BOOTSTRAP_PEERS_LINE=""
+if [ -n "$BOOTSTRAP_PEERS_VALUE" ]; then
+    BOOTSTRAP_PEERS_LINE=$'\n'"STATION_BOOTSTRAP_PEERS=$BOOTSTRAP_PEERS_VALUE"
+fi
+
 cat > .env << EOF
 # Station Domain Configuration
 STATION_DOMAIN=$STATION_DOMAIN
@@ -1265,7 +1433,7 @@ WATCHTOWER_HTTP_API_TOKEN=$WATCHTOWER_TOKEN
 # Leave unset to use the network's built-in seeds (from the committed profile).
 # Set this to point at a custom seed, or to "none" to disable bootstrap
 # (the first bootnode of a network runs with no seeds — it IS the seed).
-# STATION_BOOTSTRAP_PEERS=
+# STATION_BOOTSTRAP_PEERS=$BOOTSTRAP_PEERS_LINE
 
 # Public announce address for DHT (derived from domain)
 # This tells other peers how to reach this node through Traefik
@@ -1392,12 +1560,14 @@ if [ "$GUM_AVAILABLE" = true ]; then
         "Domain:           $STATION_DOMAIN" \
         "Email:            $ACME_EMAIL" \
         "Certificate:      Production" \
-        "Domain Type:      $DOMAIN_TYPE"
+        "Domain Type:      $DOMAIN_TYPE" \
+        "Entry node:       $ENTRY_NODE_SUMMARY"
 else
     echo "  Domain:              $STATION_DOMAIN"
     echo "  Email:               $ACME_EMAIL"
     echo "  Certificate Mode:    Production"
     echo "  Domain Type:         $DOMAIN_TYPE"
+    echo "  Entry Node:          $ENTRY_NODE_SUMMARY"
 fi
 echo ""
 
