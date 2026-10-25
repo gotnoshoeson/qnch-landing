@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0-rc.21",
-  "docker_image": "ghcr.io/gotnoshoeson/station:0.1.0-rc.21",
-  "release_date": "2026-10-25T22:13:32Z",
-  "changelog_url": "https://github.com/gotnoshoeson/station/releases/tag/v0.1.0-rc.21",
+  "version": "0.1.0-rc.22",
+  "docker_image": "ghcr.io/gotnoshoeson/station:0.1.0-rc.22",
+  "release_date": "2026-10-25T23:28:07Z",
+  "changelog_url": "https://github.com/gotnoshoeson/station/releases/tag/v0.1.0-rc.22",
   "min_version": "0.1.0-beta.50"
 }
