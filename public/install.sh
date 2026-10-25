@@ -157,7 +157,7 @@ esac
 # qnch.network by release.yml, which also fills in STATION_RELEASE_TAG; a copy
 # of this script that was not published (empty tag) does not download it.
 # ----------------------------------------------------------------------------
-STATION_RELEASE_TAG="v0.1.0-rc.20"
+STATION_RELEASE_TAG="v0.1.0-rc.21"
 STATION_INSTALLER_URL="https://qnch.network/installer"
 
 fetch_tui() {
