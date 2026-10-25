@@ -157,7 +157,7 @@ esac
 # qnch.network by release.yml, which also fills in STATION_RELEASE_TAG; a copy
 # of this script that was not published (empty tag) does not download it.
 # ----------------------------------------------------------------------------
-STATION_RELEASE_TAG="v0.1.0-rc.17"
+STATION_RELEASE_TAG="v0.1.0-rc.19"
 STATION_INSTALLER_URL="https://qnch.network/installer"
 
 fetch_tui() {
@@ -1056,13 +1056,24 @@ for port in 80 443; do
     fi
 done
 
-if [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
-    print_warning "Ports in use: ${PORTS_IN_USE[*]}"
+# On a re-run the ports are usually held by this install's own Traefik. That
+# is not a conflict: the install replaces that container.
+STATION_OWNS_PORTS=false
+if [ ${#PORTS_IN_USE[@]} -gt 0 ] && [ -f "$PROJECT_ROOT/.env" ] && \
+   [ -n "$(docker ps -q --filter name='^station-traefik$' 2>/dev/null)" ]; then
+    STATION_OWNS_PORTS=true
+fi
+
+if [ "$STATION_OWNS_PORTS" = true ]; then
+    print_success "Ports 80 and 443 are used by your current Station, which this install restarts"
+elif [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
+    if [ ${#PORTS_IN_USE[@]} -eq 1 ]; then
+        print_warning "Another program is using port ${PORTS_IN_USE[0]}"
+    else
+        print_warning "Another program is using ports ${PORTS_IN_USE[0]} and ${PORTS_IN_USE[1]}"
+    fi
     echo ""
-    echo "The following ports must be available: 80, 443"
-    echo "Currently in use: ${PORTS_IN_USE[*]}"
-    echo ""
-    echo "Services using these ports:"
+    echo "Station needs ports 80 and 443 for HTTPS. This is what is using them:"
     # ERE alternation needs ports joined with "|" (e.g. "80|443"). ${arr[*]}
     # joins with a plain space by default, producing ":(80 443) " — a
     # pattern that greps for the literal substring "80 443" and therefore
@@ -1073,11 +1084,20 @@ if [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
     timeout 5 netstat -tulnp 2>/dev/null | grep -E ":(${PORTS_REGEX}) " || \
     echo "  (could not determine)"
     echo ""
+    echo "Stop that program, then continue."
+    echo ""
     if [ "$ANSWERS_MODE" = true ]; then
         answer_bool STOP_PORT_SERVICES || exit 1
-    elif ! gum_confirm "Stop these services and continue?" "no"; then
+    elif ! gum_confirm "Continue now?" "no"; then
         exit 1
     fi
+    # Nothing here stops the program; check whether it was stopped.
+    for port in "${PORTS_IN_USE[@]}"; do
+        if timeout 5 ss -tuln 2>/dev/null | grep -q ":$port " || \
+           timeout 5 netstat -tuln 2>/dev/null | grep -q ":$port "; then
+            print_warning "Port $port is still in use; Station will not be able to start until it is free"
+        fi
+    done
 else
     print_success "Ports 80 and 443 are available"
 fi
