@@ -2,15 +2,59 @@
 
 set -e  # Exit on error
 
-# Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
+# Colours: the artist dashboard's palette (web/artist-portal/src/theme.js).
+# gum takes the hex values; plain output uses true colour when the terminal
+# says it has it, else the nearest of the 256 standard colours.
+COL_MINT="#ADEBB3"
+COL_AQUA="#ADEBD2"
+COL_LIME="#C6EBAD"
+COL_MUTED="#A1A1AA"
+COL_WARN="#F5C08A"
+COL_ERROR="#F28B82"
+ansi_fg() { # ansi_fg "#RRGGBB" 256-colour-index
+    case "${COLORTERM:-}" in
+        truecolor|24bit) printf '\033[38;2;%d;%d;%dm' "0x${1:1:2}" "0x${1:3:2}" "0x${1:5:2}" ;;
+        *) printf '\033[38;5;%dm' "$2" ;;
+    esac
+}
+GREEN=$(ansi_fg "$COL_MINT" 151)
+CYAN=$(ansi_fg "$COL_AQUA" 158)
+LIME=$(ansi_fg "$COL_LIME" 193)
+MUTED=$(ansi_fg "$COL_MUTED" 248)
+YELLOW=$(ansi_fg "$COL_WARN" 222)
+RED=$(ansi_fg "$COL_ERROR" 210)
+BLUE="$GREEN"
 BOLD='\033[1m'
 NC='\033[0m' # No Color
+
+# gum's own prompts, buttons and spinners in the same palette.
+export GUM_SPIN_SPINNER_FOREGROUND="$COL_MINT"
+export GUM_CONFIRM_PROMPT_FOREGROUND="$COL_MINT"
+export GUM_CONFIRM_SELECTED_BACKGROUND="$COL_MINT"
+export GUM_CONFIRM_SELECTED_FOREGROUND="#09090B"
+export GUM_CONFIRM_UNSELECTED_BACKGROUND="#27272A"
+export GUM_CONFIRM_UNSELECTED_FOREGROUND="$COL_MUTED"
+export GUM_INPUT_PROMPT_FOREGROUND="$COL_MINT"
+export GUM_INPUT_CURSOR_FOREGROUND="$COL_MINT"
+export GUM_INPUT_PLACEHOLDER_FOREGROUND="#71717A"
+export GUM_CHOOSE_CURSOR_FOREGROUND="$COL_MINT"
+export GUM_CHOOSE_SELECTED_FOREGROUND="$COL_MINT"
+export GUM_CHOOSE_HEADER_FOREGROUND="$COL_MINT"
+# gum format (Markdown) in the same palette: a small theme file, removed on exit.
+STATION_GUM_THEME=$(mktemp 2>/dev/null || echo "/tmp/station-gum-theme.$$.json")
+cat > "$STATION_GUM_THEME" << 'GUM_THEME'
+{"document":{"block_prefix":"\n","block_suffix":"\n","margin":2},"heading":{"block_suffix":"\n","color":"#ADEBB3","bold":true},"h1":{"prefix":""},"h2":{"prefix":""},"h3":{"prefix":""},"paragraph":{},"list":{"level_indent":2},"item":{"block_prefix":"• "},"strong":{"bold":true},"emph":{"italic":true,"color":"#A1A1AA"},"code":{"color":"#ADEBD2"},"code_block":{"color":"#E4E4E7","margin":2}}
+GUM_THEME
+export GUM_FORMAT_THEME="$STATION_GUM_THEME"
+
+# Temporary files removed on exit: the theme above and, with --tui, the
+# downloaded installer app.
+TUI_TMPDIR=""
+cleanup_tmp() {
+    rm -f "$STATION_GUM_THEME"
+    if [ -n "$TUI_TMPDIR" ]; then rm -rf "$TUI_TMPDIR"; fi
+}
+trap cleanup_tmp EXIT
 
 # ----------------------------------------------------------------------------
 # Environment target (deploy-time choice): which P2P directory this node
@@ -27,6 +71,15 @@ NC='\033[0m' # No Color
 # ----------------------------------------------------------------------------
 NETWORK="production"
 CHAIN=""
+# --answers <file>: the answers the station-installer terminal app collected
+# (KEY='value' lines). With it, every question below is answered from the
+# file instead of asked; without it, nothing changes.
+ANSWERS_FILE=""
+# --tui: run the station-installer terminal app for the questions (opt-in
+# while it is new). --tui-binary <path> uses a local build instead of the
+# release download (testing).
+USE_TUI=false
+TUI_BINARY=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --network=*)
@@ -47,8 +100,27 @@ while [ $# -gt 0 ]; do
             CHAIN="${1:-}"
             [ $# -eq 0 ] || shift
             ;;
+        --answers=*)
+            ANSWERS_FILE="${1#*=}"
+            shift
+            ;;
+        --answers)
+            shift
+            ANSWERS_FILE="${1:-}"
+            [ $# -eq 0 ] || shift
+            ;;
+        --tui)
+            USE_TUI=true
+            shift
+            ;;
+        --tui-binary)
+            shift
+            USE_TUI=true
+            TUI_BINARY="${1:-}"
+            [ $# -eq 0 ] || shift
+            ;;
         -h|--help)
-            echo "Usage: $(basename "$0") [--network production|testnet|local] [--chain polkadot-hub|kusama-hub|paseo|local|local-dummy]"
+            echo "Usage: $(basename "$0") [--network production|testnet|local] [--chain polkadot-hub|kusama-hub|paseo|local|local-dummy] [--tui] [--answers <file>]"
             exit 0
             ;;
         *)
@@ -72,33 +144,74 @@ case "$CHAIN" in
         ;;
 esac
 
-# Print the QNCH ASCII banner
-print_banner() {
-    local banner
-    banner=$(cat << 'BANNER'
- ██████╗ ███╗   ██╗ ██████╗██╗  ██╗
-██╔═══██╗████╗  ██║██╔════╝██║  ██║
-██║   ██║██╔██╗ ██║██║     ███████║
-██║▄▄ ██║██║╚██╗██║██║     ██╔══██║
-╚██████╔╝██║ ╚████║╚██████╗██║  ██║
- ╚══▀▀═╝ ╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
-BANNER
-)
-    echo ""
-    if [ "$GUM_AVAILABLE" = true ]; then
-        echo "$banner" | gum style --foreground 212 --bold
-        echo ""
-        gum style --foreground 99 --bold "         Setup Wizard"
-    else
-        echo -e "${PURPLE} ██████╗ ${CYAN}███╗   ██╗${PURPLE} ██████╗${CYAN}██╗  ██╗${NC}"
-        echo -e "${PURPLE}██╔═══██╗${CYAN}████╗  ██║${PURPLE}██╔════╝${CYAN}██║  ██║${NC}"
-        echo -e "${PURPLE}██║   ██║${CYAN}██╔██╗ ██║${PURPLE}██║     ${CYAN}███████║${NC}"
-        echo -e "${PURPLE}██║▄▄ ██║${CYAN}██║╚██╗██║${PURPLE}██║     ${CYAN}██╔══██║${NC}"
-        echo -e "${PURPLE}╚██████╔╝${CYAN}██║ ╚████║${PURPLE}╚██████╗${CYAN}██║  ██║${NC}"
-        echo -e "${PURPLE} ╚══▀▀═╝ ${CYAN}╚═╝  ╚═══╝${PURPLE} ╚═════╝${CYAN}╚═╝  ╚═╝${NC}"
-        echo ""
-        echo -e "${BOLD}         Setup Wizard${NC}"
+# ----------------------------------------------------------------------------
+# Terminal app (--tui). The app asks the questions and runs this script again
+# with --answers, so everything after the questions is unchanged. Anything
+# that stops it (no download, a bad checksum, no terminal, not root) falls
+# back to the wizard below. STATION_RELEASE_TAG is filled in by release.yml
+# when it publishes this script, so the app always matches the script.
+# ----------------------------------------------------------------------------
+STATION_RELEASE_TAG="v0.1.0-rc.16"
+STATION_RELEASES_URL="https://github.com/gotnoshoeson/station/releases/download"
+
+fetch_tui() {
+    local arch dir base want got
+    case "$(uname -m)" in
+        x86_64|amd64) arch=amd64 ;;
+        aarch64|arm64) arch=arm64 ;;
+        *) return 1 ;;
+    esac
+    [ -n "$STATION_RELEASE_TAG" ] || return 1
+    command -v curl >/dev/null && command -v sha256sum >/dev/null || return 1
+    dir=$(mktemp -d) || return 1
+    TUI_TMPDIR="$dir"
+    base="$STATION_RELEASES_URL/$STATION_RELEASE_TAG/station-installer-linux-$arch"
+    curl -fsSL --max-time 120 -o "$dir/station-installer" "$base" || return 1
+    curl -fsSL --max-time 30 -o "$dir/station-installer.sha256" "$base.sha256" || return 1
+    want=$(awk '{print $1; exit}' "$dir/station-installer.sha256")
+    got=$(sha256sum "$dir/station-installer" | awk '{print $1}')
+    [ -n "$want" ] && [ "$want" = "$got" ] || return 1
+    chmod 700 "$dir/station-installer"
+    TUI_BINARY="$dir/station-installer"
+}
+
+if [ "$USE_TUI" = true ] && [ -z "$ANSWERS_FILE" ]; then
+    tui_note=""
+    if [ "$EUID" -ne 0 ]; then
+        tui_note="the new installer needs root"
+    elif [ ! -t 0 ] || [ ! -t 1 ]; then
+        tui_note="the new installer needs an interactive terminal"
+    elif [ -z "$TUI_BINARY" ] && ! fetch_tui; then
+        tui_note="the new installer could not be downloaded or checked"
     fi
+    if [ -z "$tui_note" ]; then
+        tui_rc=0
+        tui_args=(--preview=false --script "$(readlink -f "${BASH_SOURCE[0]}")" --network "$NETWORK")
+        [ -n "$CHAIN" ] && tui_args+=(--chain "$CHAIN")
+        "$TUI_BINARY" "${tui_args[@]}" || tui_rc=$?
+        # 3: the app could not run here. Anything else is the install's own
+        # result (the app ran this script), or the artist cancelled (130).
+        [ "$tui_rc" -eq 3 ] || exit "$tui_rc"
+        tui_note="the new installer could not start here"
+    fi
+    echo "Note: $tui_note. Using the classic setup wizard."
+    echo ""
+fi
+
+# Print the STATION banner: the same letters and lime-to-aqua fade as the
+# station-installer terminal app (internal/installer/splash.go).
+print_banner() {
+    local g1 g2
+    g1=$(ansi_fg "#B9EBB0" 157)
+    g2=$(ansi_fg "#ADEBC2" 158)
+    echo ""
+    echo -e "${LIME}███████ ████████  █████  ████████ ██  ██████  ███    ██${NC}"
+    echo -e "${g1}██         ██    ██   ██    ██    ██ ██    ██ ████   ██${NC}"
+    echo -e "${GREEN}███████    ██    ███████    ██    ██ ██    ██ ██ ██  ██${NC}"
+    echo -e "${g2}     ██    ██    ██   ██    ██    ██ ██    ██ ██  ██ ██${NC}"
+    echo -e "${CYAN}███████    ██    ██   ██    ██    ██  ██████  ██   ████${NC}"
+    echo ""
+    echo -e "Part of the ${GREEN}${BOLD}QNCH${NC} Network  ${MUTED}·  setup wizard${NC}"
     echo ""
 }
 
@@ -116,7 +229,7 @@ print_header() {
 
 print_step() {
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 39 "→ $1"
+        gum style --foreground "$COL_MINT" "→ $1"
     else
         echo -e "${BLUE}→${NC} $1"
     fi
@@ -124,7 +237,7 @@ print_step() {
 
 print_success() {
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 82 "✓ $1"
+        gum style --foreground "$COL_MINT" "✓ $1"
     else
         echo -e "${GREEN}✓${NC} $1"
     fi
@@ -132,7 +245,7 @@ print_success() {
 
 print_error() {
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 196 "✗ $1"
+        gum style --foreground "$COL_ERROR" "✗ $1"
     else
         echo -e "${RED}✗${NC} $1"
     fi
@@ -140,7 +253,7 @@ print_error() {
 
 print_warning() {
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 214 "⚠ $1"
+        gum style --foreground "$COL_WARN" "⚠ $1"
     else
         echo -e "${YELLOW}⚠${NC} $1"
     fi
@@ -148,7 +261,7 @@ print_warning() {
 
 print_info() {
     if [ "$GUM_AVAILABLE" = true ]; then
-        gum style --foreground 39 "ℹ $1"
+        gum style --foreground "$COL_AQUA" "ℹ $1"
     else
         echo -e "${BLUE}ℹ${NC} $1"
     fi
@@ -156,6 +269,12 @@ print_info() {
 
 # Gum availability flag
 GUM_AVAILABLE=false
+
+# Progress for the station-installer terminal app. It sets STATION_TUI=1 when
+# it runs this script (always with --answers) and turns these lines into its
+# checklist and final card; without it they print nothing.
+tui_stage() { if [ "${STATION_TUI:-}" = 1 ]; then echo "::stage::$1"; fi; }
+tui_result() { if [ "${STATION_TUI:-}" = 1 ]; then echo "::result::$1"; fi; }
 
 # Check if gum is installed and install if needed
 setup_gum() {
@@ -237,7 +356,7 @@ gum_spin() {
 gum_box() {
     local text="$1"
     local border="${2:-rounded}"
-    local color="${3:-212}"
+    local color="${3:-$COL_MINT}"
     if [ "$GUM_AVAILABLE" = true ]; then
         echo "$text" | gum style --border "$border" --border-foreground "$color" --padding "1 2" --margin "1 0"
     else
@@ -282,7 +401,7 @@ gum_header() {
     local title="$1"
     if [ "$GUM_AVAILABLE" = true ]; then
         echo ""
-        gum style --foreground 212 --bold --border double --border-foreground 99 --padding "0 2" "$title"
+        gum style --foreground "$COL_MINT" --bold --border double --border-foreground "$COL_MINT" --padding "0 2" "$title"
         echo ""
     else
         print_header "$title"
@@ -349,6 +468,47 @@ gum_choose() {
         read -p "Enter number: " choice
         echo "${options[$((choice-1))]}"
     fi
+}
+
+# ----------------------------------------------------------------------------
+# Answers file (--answers). Read line by line, never sourced: only the keys
+# below are accepted, each as KEY='value' with '\'' for a quote inside, which
+# is exactly what station-installer writes. Values land in ANS_<KEY>.
+# ----------------------------------------------------------------------------
+ANSWERS_MODE=false
+ANSWER_KEYS="ANSWERS_VERSION NETWORK CHAIN RECONFIGURE INSTALL_DOCKER STOP_PORT_SERVICES DOMAIN_TYPE SERVER_IP STATION_DOMAIN DUCKDNS_SUBDOMAIN DUCKDNS_TOKEN DNS_MISMATCH_OK ACME_EMAIL ENABLE_ETHRPC KEEP_SAVED_BOOTNODE BOOTSTRAP_PEERS_VALUE"
+
+answers_fail() {
+    print_error "Answers file: $1"
+    exit 1
+}
+
+load_answers() {
+    local file="$1" line key value n=0
+    [ -f "$file" ] || answers_fail "$file not found"
+    for key in $ANSWER_KEYS; do printf -v "ANS_$key" '%s' ""; done
+    while IFS= read -r line || [ -n "$line" ]; do
+        n=$((n + 1))
+        [ -z "$line" ] && continue
+        if [[ ! "$line" =~ ^([A-Z_]+)=\'(.*)\'$ ]]; then
+            answers_fail "line $n is not KEY='value'"
+        fi
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
+        [[ " $ANSWER_KEYS " == *" $key "* ]] || answers_fail "unknown key $key on line $n"
+        value="${value//\'\\\'\'/\'}"
+        printf -v "ANS_$key" '%s' "$value"
+    done < "$file"
+    [ "$ANS_ANSWERS_VERSION" = "1" ] || answers_fail "version '$ANS_ANSWERS_VERSION' is not supported by this installer"
+    [ "$ANS_NETWORK" = "$NETWORK" ] || answers_fail "written for network '$ANS_NETWORK', but this run is --network $NETWORK"
+    [ "$ANS_CHAIN" = "$CHAIN" ] || answers_fail "written for chain '$ANS_CHAIN', but this run has --chain '$CHAIN'"
+    ANSWERS_MODE=true
+}
+
+# answer_bool KEY: succeeds when ANS_KEY is "true".
+answer_bool() {
+    local v="ANS_$1"
+    [ "${!v}" = "true" ]
 }
 
 # Docker installation function for Ubuntu/Debian
@@ -714,14 +874,27 @@ NETWORKS_EOF
 # Use current working directory for all operations
 PROJECT_ROOT="$(pwd)"
 
-print_banner
+# With --answers the terminal app has already shown its splash.
+[ -n "$ANSWERS_FILE" ] || print_banner
 
-# Setup gum for pretty prompts (installs if needed)
-setup_gum
+# Setup gum for pretty prompts (installs if needed). Under the terminal app
+# the output goes to its log panel, so plain text is used instead.
+if [ "${STATION_TUI:-}" = 1 ]; then
+    GUM_AVAILABLE=false
+else
+    setup_gum
+fi
 
-# Show welcome message with prerequisites
-if [ "$GUM_AVAILABLE" = true ]; then
-    gum style --border rounded --border-foreground 99 --padding "1 2" --margin "1 0" \
+if [ -n "$ANSWERS_FILE" ]; then
+    load_answers "$ANSWERS_FILE"
+    print_info "Using the answers from $ANSWERS_FILE"
+fi
+
+# Show welcome message with prerequisites (the terminal app already checked them)
+if [ -n "$ANSWERS_FILE" ]; then
+    :
+elif [ "$GUM_AVAILABLE" = true ]; then
+    gum style --border rounded --border-foreground "$COL_MINT" --padding "1 2" --margin "1 0" \
         "This script will set up your QNCH node with HTTPS support." \
         "It requires an internet connection."
     echo ""
@@ -774,7 +947,14 @@ esac
 # Check if already configured
 if [ -f "$PROJECT_ROOT/.env" ]; then
     print_warning "Found existing .env file"
-    if ! gum_confirm "Do you want to reconfigure?" "no"; then
+    if [ "$ANSWERS_MODE" = true ]; then
+        reconfigure_ok=false; answer_bool RECONFIGURE && reconfigure_ok=true
+    elif gum_confirm "Do you want to reconfigure?" "no"; then
+        reconfigure_ok=true
+    else
+        reconfigure_ok=false
+    fi
+    if [ "$reconfigure_ok" != true ]; then
         print_info "Exiting. To start services, run: docker compose -f docker-compose.yml up -d"
         exit 0
     fi
@@ -783,6 +963,7 @@ fi
 # ============================================================================
 # Step 1: Check and Install Prerequisites
 # ============================================================================
+tui_stage server
 
 print_step "Checking prerequisites..."
 echo ""
@@ -812,7 +993,8 @@ DOCKER_INFO
     fi
     echo ""
 
-    if gum_confirm "Install Docker automatically?" "yes"; then
+    if { [ "$ANSWERS_MODE" = true ] && answer_bool INSTALL_DOCKER; } || \
+       { [ "$ANSWERS_MODE" != true ] && gum_confirm "Install Docker automatically?" "yes"; }; then
         if ! install_docker_ubuntu; then
             print_error "Docker installation failed"
             echo ""
@@ -886,7 +1068,9 @@ if [ ${#PORTS_IN_USE[@]} -gt 0 ]; then
     timeout 5 netstat -tulnp 2>/dev/null | grep -E ":(${PORTS_REGEX}) " || \
     echo "  (could not determine)"
     echo ""
-    if ! gum_confirm "Stop these services and continue?" "no"; then
+    if [ "$ANSWERS_MODE" = true ]; then
+        answer_bool STOP_PORT_SERVICES || exit 1
+    elif ! gum_confirm "Stop these services and continue?" "no"; then
         exit 1
     fi
 else
@@ -898,11 +1082,20 @@ echo ""
 # ============================================================================
 # Step 2: Domain Configuration
 # ============================================================================
+tui_stage network
 
 print_step "Domain Configuration"
 echo ""
 
-domain_choice=$(gum_choose "How would you like to configure your domain?" "Own domain (mymusic.example.com)" "DuckDNS (free dynamic DNS)")
+if [ "$ANSWERS_MODE" = true ]; then
+    case "$ANS_DOMAIN_TYPE" in
+        custom) domain_choice="Own domain" ;;
+        duckdns) domain_choice="DuckDNS" ;;
+        *) answers_fail "DOMAIN_TYPE must be custom or duckdns" ;;
+    esac
+else
+    domain_choice=$(gum_choose "How would you like to configure your domain?" "Own domain (mymusic.example.com)" "DuckDNS (free dynamic DNS)")
+fi
 
 if [[ "$domain_choice" == "Own domain"* ]]; then
     domain_option="1"
@@ -947,18 +1140,28 @@ DOMAIN_REQ
 
     if [ -z "$SERVER_IP" ]; then
         print_warning "Could not auto-detect public IP"
-        SERVER_IP=$(gum_input "Enter this server's public IP address:" "192.168.1.1")
+        if [ "$ANSWERS_MODE" = true ]; then
+            [ -n "$ANS_SERVER_IP" ] || answers_fail "this server's public IP could not be detected and none was given"
+            SERVER_IP="$ANS_SERVER_IP"
+        else
+            SERVER_IP=$(gum_input "Enter this server's public IP address:" "192.168.1.1")
+        fi
     else
         print_success "Server IP: $SERVER_IP"
     fi
     echo ""
 
     while true; do
-        STATION_DOMAIN=$(gum_input "Enter your domain:" "mymusic.example.com")
+        if [ "$ANSWERS_MODE" = true ]; then
+            STATION_DOMAIN="$ANS_STATION_DOMAIN"
+        else
+            STATION_DOMAIN=$(gum_input "Enter your domain:" "mymusic.example.com")
+        fi
 
         # Validate domain format
         if [[ ! "$STATION_DOMAIN" =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ ]]; then
             print_error "Invalid domain format"
+            [ "$ANSWERS_MODE" = true ] && exit 1
             continue
         fi
 
@@ -971,7 +1174,7 @@ DOMAIN_REQ
             echo "Please configure your DNS A record and wait for propagation."
             echo ""
             if [ "$GUM_AVAILABLE" = true ]; then
-                gum style --border rounded --border-foreground 214 --padding "1 2" \
+                gum style --border rounded --border-foreground "$COL_WARN" --padding "1 2" \
                     "DNS Configuration" \
                     "" \
                     "Type:   A" \
@@ -986,7 +1189,7 @@ DOMAIN_REQ
                 echo "  TTL: 300 (5 minutes)"
             fi
             echo ""
-            if ! gum_confirm "Try again after configuring DNS?" "yes"; then
+            if [ "$ANSWERS_MODE" = true ] || ! gum_confirm "Try again after configuring DNS?" "yes"; then
                 exit 1
             fi
             continue
@@ -1000,7 +1203,9 @@ DOMAIN_REQ
             echo "Please update your DNS A record to point to $SERVER_IP"
             echo "and wait 5-15 minutes for propagation."
             echo ""
-            if ! gum_confirm "Continue anyway? (not recommended)" "no"; then
+            if [ "$ANSWERS_MODE" = true ]; then
+                answer_bool DNS_MISMATCH_OK || exit 1
+            elif ! gum_confirm "Continue anyway? (not recommended)" "no"; then
                 continue
             fi
         else
@@ -1023,7 +1228,7 @@ else
     echo "  4. Copy your token from the top of the page"
     echo ""
 
-    if ! gum_confirm "Have you created a DuckDNS account and subdomain?" "no"; then
+    if [ "$ANSWERS_MODE" != true ] && ! gum_confirm "Have you created a DuckDNS account and subdomain?" "no"; then
         echo ""
         print_info "Please visit https://www.duckdns.org/ to create a free account."
         print_info "Then run this script again."
@@ -1031,12 +1236,20 @@ else
     fi
 
     echo ""
-    DUCKDNS_SUBDOMAIN=$(gum_input "Enter your DuckDNS subdomain:" "myband")
+    if [ "$ANSWERS_MODE" = true ]; then
+        DUCKDNS_SUBDOMAIN="$ANS_DUCKDNS_SUBDOMAIN"
+    else
+        DUCKDNS_SUBDOMAIN=$(gum_input "Enter your DuckDNS subdomain:" "myband")
+    fi
 
     # Remove .duckdns.org if user included it
     DUCKDNS_SUBDOMAIN=${DUCKDNS_SUBDOMAIN%.duckdns.org}
 
-    DUCKDNS_TOKEN=$(gum_input "Enter your DuckDNS token:" "your-token-here")
+    if [ "$ANSWERS_MODE" = true ]; then
+        DUCKDNS_TOKEN="$ANS_DUCKDNS_TOKEN"
+    else
+        DUCKDNS_TOKEN=$(gum_input "Enter your DuckDNS token:" "your-token-here")
+    fi
 
     STATION_DOMAIN="${DUCKDNS_SUBDOMAIN}.duckdns.org"
 
@@ -1074,7 +1287,11 @@ echo "Let's Encrypt will send certificate expiration notices to this email."
 echo "This is optional but recommended in case auto-renewal fails."
 echo ""
 
-ACME_EMAIL=$(gum_input "Enter email address:" "your@email.com")
+if [ "$ANSWERS_MODE" = true ]; then
+    ACME_EMAIL="$ANS_ACME_EMAIL"
+else
+    ACME_EMAIL=$(gum_input "Enter email address:" "your@email.com")
+fi
 
 if [ -z "$ACME_EMAIL" ] || [ "$ACME_EMAIL" = "your@email.com" ]; then
     ACME_EMAIL="admin@${STATION_DOMAIN}"
@@ -1127,7 +1344,8 @@ ETHRPC_INFO
         echo "  - Falls back to public indexers automatically if you skip this"
     fi
     echo ""
-    if gum_confirm "Run your own blockchain indexer?" "yes"; then
+    if { [ "$ANSWERS_MODE" = true ] && answer_bool ENABLE_ETHRPC; } || \
+       { [ "$ANSWERS_MODE" != true ] && gum_confirm "Run your own blockchain indexer?" "yes"; }; then
         ENABLE_ETHRPC=true
         print_success "Your node will run its own indexer"
     else
@@ -1256,6 +1474,13 @@ validate_node_addrs() {
 # Sets BOOTSTRAP_PEERS_VALUE (empty = none).
 prompt_node_address() {
     local node_addr_input
+    if [ "$ANSWERS_MODE" = true ]; then
+        if validate_node_addrs "$ANS_BOOTSTRAP_PEERS_VALUE"; then
+            BOOTSTRAP_PEERS_VALUE="$NODE_ADDR_VALUE"
+            return 0
+        fi
+        answers_fail "BOOTSTRAP_PEERS_VALUE is not a valid node address${NODE_ADDR_REASON:+: $NODE_ADDR_REASON}"
+    fi
     while true; do
         node_addr_input=$(gum_input "Node address:" "/dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW...")
         if validate_node_addrs "$node_addr_input"; then
@@ -1373,17 +1598,29 @@ if [ -n "$EXISTING_BOOTSTRAP" ]; then
         KEEP_PROMPT="Keep it anyway?"
         KEEP_DEFAULT=no
     fi
-    if gum_confirm "$KEEP_PROMPT" "$KEEP_DEFAULT"; then
+    if { [ "$ANSWERS_MODE" = true ] && answer_bool KEEP_SAVED_BOOTNODE; } || \
+       { [ "$ANSWERS_MODE" != true ] && gum_confirm "$KEEP_PROMPT" "$KEEP_DEFAULT"; }; then
         BOOTSTRAP_PEERS_VALUE="$EXISTING_BOOTSTRAP"
         ENTRY_NODE_SUMMARY="$EXISTING_BOOTSTRAP"
         print_info "Keeping your saved entry node: $EXISTING_BOOTSTRAP"
     else
-        echo "Paste a node address from another Station node's dashboard (Settings), or press Enter to continue without one."
+        # No address means the network's built-in bootnode list (founder,
+        # 2026-10-25): the saved line is dropped and the node uses that list.
+        HAS_BUILTIN=false
+        if fetch_builtin_bootnodes && [ -n "$BUILTIN_BOOTNODES" ]; then
+            HAS_BUILTIN=true
+            echo "Paste a node address from another Station node's dashboard (Settings), or press Enter to use Station's built-in bootnode."
+        else
+            echo "Paste a node address from another Station node's dashboard (Settings), or press Enter to continue without one."
+        fi
         echo ""
         prompt_node_address
         if [ -n "$BOOTSTRAP_PEERS_VALUE" ]; then
             ENTRY_NODE_SUMMARY="$BOOTSTRAP_PEERS_VALUE"
             print_success "Your node will join the network through: $BOOTSTRAP_PEERS_VALUE"
+        elif [ "$HAS_BUILTIN" = true ]; then
+            ENTRY_NODE_SUMMARY="built-in"
+            print_info "Your node will join the network through Station's built-in bootnode."
         else
             ENTRY_NODE_SUMMARY="none yet"
             print_warning "Your node will start, but it won't be on the network until you add a node address. To add one later, run this installer again."
@@ -1423,6 +1660,7 @@ echo ""
 # ============================================================================
 # Step 6: Create Directory Structure
 # ============================================================================
+tui_stage config
 
 print_step "Setting up directories..."
 
@@ -1683,7 +1921,7 @@ echo ""
 print_step "Configuration Summary"
 echo ""
 if [ "$GUM_AVAILABLE" = true ]; then
-    gum style --border rounded --border-foreground 99 --padding "1 2" \
+    gum style --border rounded --border-foreground "$COL_MINT" --padding "1 2" \
         "Domain:           $STATION_DOMAIN" \
         "Email:            $ACME_EMAIL" \
         "Certificate:      Production" \
@@ -1701,6 +1939,7 @@ echo ""
 # ============================================================================
 # Step 10: Start Services
 # ============================================================================
+tui_stage containers
 
 print_step "Starting Station and Traefik..."
 echo ""
@@ -1750,6 +1989,7 @@ fi
 
 echo ""
 echo ""
+tui_stage certificate
 print_info "Waiting for certificate provisioning..."
 echo "This can take 30-90 seconds while Let's Encrypt validates your domain..."
 echo ""
@@ -1787,6 +2027,7 @@ fi
 # ============================================================================
 # Step 11: Wait for Station to be Ready
 # ============================================================================
+tui_stage node
 
 print_info "Waiting for Station to start..."
 
@@ -1819,13 +2060,31 @@ fi
 # ============================================================================
 # Step 12: Extract Setup PIN from Station Logs
 # ============================================================================
+tui_stage login
 
 print_step "Retrieving setup PIN from Station..."
 
 # Give Station a moment to generate and log the PIN
 sleep 3
 
+# A node only has a setup PIN until its login exists. On a re-run over an
+# install that already has one, say so instead of looking for a PIN.
+SETUP_DONE=false
+AUTH_STATUS=""
+for _ in 1 2 3 4 5; do
+    AUTH_STATUS=$(docker compose -f docker-compose.yml exec -T station \
+        wget -qO- http://127.0.0.1:8080/api/auth/status 2>/dev/null || true)
+    [ -n "$AUTH_STATUS" ] && break
+    sleep 2
+done
+if [[ "$AUTH_STATUS" == *'"setup_complete":true'* ]]; then
+    SETUP_DONE=true
+fi
+
 # Extract PIN from logs - look for the PIN pattern (XXX-XXX)
+if [ "$SETUP_DONE" = true ]; then
+    SETUP_PIN=""
+else
 SETUP_PIN=$(docker compose -f docker-compose.yml logs station 2>&1 | \
     grep -E "^\s*[0-9]{3}-[0-9]{3}\s*$" | \
     tr -d ' ' | \
@@ -1840,7 +2099,11 @@ if [ -z "$SETUP_PIN" ]; then
         tail -n 1)
 fi
 
-if [ -z "$SETUP_PIN" ]; then
+fi
+
+if [ "$SETUP_DONE" = true ]; then
+    print_success "Your login is already set up"
+elif [ -z "$SETUP_PIN" ]; then
     print_warning "Could not automatically retrieve PIN"
     SETUP_PIN="(check logs - see troubleshooting below)"
 else
@@ -1852,10 +2115,19 @@ echo ""
 # ============================================================================
 # Step 13: Final Status and Next Steps
 # ============================================================================
+tui_result "domain=$STATION_DOMAIN"
+if [ "$SETUP_DONE" = true ]; then
+    tui_result "login=existing"
+elif [[ "$SETUP_PIN" =~ ^[0-9]{3}-[0-9]{3}$ ]]; then
+    tui_result "pin=$SETUP_PIN"
+else
+    tui_result "login=unknown"
+fi
+tui_stage done
 
 echo ""
 if [ "$GUM_AVAILABLE" = true ]; then
-    gum style --foreground 82 --bold "✓ Setup completed successfully!"
+    gum style --foreground "$COL_MINT" --bold "✓ Setup completed successfully!"
 else
     print_success "Setup completed successfully!"
 fi
@@ -1889,13 +2161,20 @@ fi
 echo ""
 
 # Display final next steps in a beautiful box
+if [ "$SETUP_DONE" = true ]; then
+    NEXT_OPEN="1. Open:  https://$STATION_DOMAIN/login"
+    NEXT_LOGIN="2. Sign in with your email and password"
+else
+    NEXT_OPEN="1. Open:  https://$STATION_DOMAIN/setup"
+    NEXT_LOGIN="2. Enter PIN:  $SETUP_PIN"
+fi
 if [ "$GUM_AVAILABLE" = true ]; then
-    gum style --border double --border-foreground 212 --padding "1 3" --margin "1 0" --bold \
+    gum style --border double --border-foreground "$COL_MINT" --padding "1 3" --margin "1 0" --bold \
         "NEXT STEPS" \
         "" \
-        "1. Open:  https://$STATION_DOMAIN/setup" \
+        "$NEXT_OPEN" \
         "" \
-        "2. Enter PIN:  $SETUP_PIN" \
+        "$NEXT_LOGIN" \
         "" \
         "3. Upload your music!" \
         "" \
@@ -1905,9 +2184,9 @@ else
     echo ""
     echo "  NEXT STEPS:"
     echo ""
-    echo "  1. Open:  https://$STATION_DOMAIN/setup"
+    echo "  $NEXT_OPEN"
     echo ""
-    echo "  2. Enter PIN:  $SETUP_PIN"
+    echo "  $NEXT_LOGIN"
     echo ""
     echo "  3. Use the dashboard to upload your music"
     echo ""
