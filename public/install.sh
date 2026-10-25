@@ -1142,12 +1142,29 @@ echo ""
 # ============================================================================
 # Step 5c: Joining the network (entry node)
 # ============================================================================
+# Is this a plausible libp2p peer ID? Checked locally: base58 alphabet only,
+# and the exact length of an Ed25519 ID (12D3KooW... = 52 chars) or a legacy
+# SHA-256 ID (Qm... = 46 chars). Catches typos and truncated or padded IDs;
+# it cannot tell a made-up ID of the right shape from a real one (the node
+# image's own check, below, can).
+valid_peer_id_shape() {
+    local id="$1"
+    [[ "$id" =~ ^[1-9A-HJ-NP-Za-km-z]+$ ]] || return 1
+    if [[ "$id" == 12D3KooW* ]]; then
+        [ "${#id}" -eq 52 ]
+    elif [[ "$id" == Qm* ]]; then
+        [ "${#id}" -eq 46 ]
+    else
+        return 1
+    fi
+}
+
 # Validate and tidy a comma-separated list of libp2p multiaddrs. Prints the
 # cleaned list (whitespace trimmed, empty entries dropped, joined by ",") and
-# returns 0 when every entry looks like a node address; returns 1 otherwise.
-# Deliberately light: each entry must start with "/", contain "/p2p/" followed
-# by a peer ID beginning 12D3KooW or Qm, and contain "/tcp/" or "/udp/".
-# The node does the real parsing; this only catches typos and pasted junk.
+# returns 0 when every entry passes the local check; returns 1 otherwise.
+# Local check: starts with "/", ends in /p2p/<peer ID> where the ID passes
+# valid_peer_id_shape, and contains "/tcp/" or "/udp/". The authoritative
+# check is the node image's (check_node_addr_with_image).
 normalize_node_addrs() {
     local raw="$1" part out=""
     local -a parts
@@ -1158,11 +1175,96 @@ normalize_node_addrs() {
         part="${part%"${part##*[![:space:]]}"}"
         [ -z "$part" ] && continue
         [[ "$part" == /* ]] || return 1
-        [[ "$part" =~ /p2p/(12D3KooW|Qm)[A-Za-z0-9]+$ ]] || return 1
+        [[ "$part" =~ /p2p/([A-Za-z0-9]+)$ ]] || return 1
+        valid_peer_id_shape "${BASH_REMATCH[1]}" || return 1
         [[ "$part" == */tcp/* || "$part" == */udp/* ]] || return 1
         out="${out:+$out,}$part"
     done
     echo "$out"
+}
+
+# ---- Node image address check ------------------------------------------------
+# The Station image validates an address properly (multiaddr parse, real peer
+# ID decode). ONE-LINE CHANGE POINT: if the subcommand is renamed, edit this.
+NODE_ADDR_CHECK_CMD="station check-addr"
+
+# Run the image's check on one address. Returns 0 = valid, 1 = invalid (reason
+# in NODE_ADDR_REASON), 2 = could not check (no image, old image, timeout,
+# unexpected output) so the caller relies on the local check alone. An old
+# image without the subcommand would START A NODE, hence the timeout and fixed
+# name; a rejection only counts if it is a single line of output.
+NODE_ADDR_REASON=""
+NODE_ADDR_IMAGE_READY=""
+check_node_addr_with_image() {
+    local addr="$1" out rc
+    NODE_ADDR_REASON=""
+    if [ -z "$NODE_ADDR_IMAGE_READY" ]; then
+        if docker image inspect "$STATION_IMAGE" >/dev/null 2>&1 || docker pull -q "$STATION_IMAGE" >/dev/null 2>&1; then
+            NODE_ADDR_IMAGE_READY=yes
+        else
+            NODE_ADDR_IMAGE_READY=no
+        fi
+    fi
+    [ "$NODE_ADDR_IMAGE_READY" = yes ] || return 2
+    # $NODE_ADDR_CHECK_CMD is deliberately unquoted (command plus subcommand).
+    # shellcheck disable=SC2086
+    rc=0
+    out=$(timeout 20 docker run --rm --name station-addr-check "$STATION_IMAGE" $NODE_ADDR_CHECK_CMD "$addr" 2>&1) || rc=$?
+    docker rm -f station-addr-check >/dev/null 2>&1 || true
+    case "$rc" in
+        0) return 0 ;;
+        1)
+            out="${out%$'\r'}"
+            if [ -n "$out" ] && [[ "$out" != *$'\n'* ]]; then
+                NODE_ADDR_REASON="$out"
+                return 1
+            fi
+            return 2
+            ;;
+        *) return 2 ;;
+    esac
+}
+
+# Validate a comma-separated address list: local shape check first (fast, no
+# Docker), then the image's check on each entry. Sets NODE_ADDR_VALUE (cleaned
+# list, empty = none) and, on failure, NODE_ADDR_REASON. Call directly, not in
+# $(...), so the globals survive. Returns 0 valid, 1 invalid.
+NODE_ADDR_VALUE=""
+validate_node_addrs() {
+    local raw="$1" cleaned addr rc
+    local -a addrs
+    NODE_ADDR_VALUE=""
+    NODE_ADDR_REASON=""
+    if ! cleaned=$(normalize_node_addrs "$raw"); then
+        return 1
+    fi
+    if [ -n "$cleaned" ]; then
+        IFS=',' read -r -a addrs <<< "$cleaned"
+        for addr in "${addrs[@]}"; do
+            rc=0
+            check_node_addr_with_image "$addr" || rc=$?
+            if [ "$rc" -eq 1 ]; then
+                return 1
+            fi
+        done
+    fi
+    NODE_ADDR_VALUE="$cleaned"
+    return 0
+}
+
+# Ask for a node address until it is valid or left empty (Enter = none).
+# Sets BOOTSTRAP_PEERS_VALUE (empty = none).
+prompt_node_address() {
+    local node_addr_input
+    while true; do
+        node_addr_input=$(gum_input "Node address:" "/dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW...")
+        if validate_node_addrs "$node_addr_input"; then
+            BOOTSTRAP_PEERS_VALUE="$NODE_ADDR_VALUE"
+            return 0
+        fi
+        print_error "That doesn't look like a node address. It should look like: /dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW..."
+        if [ -n "$NODE_ADDR_REASON" ]; then print_info "$NODE_ADDR_REASON"; fi
+    done
 }
 
 # Accept the output of `station bootstrap-peers` only if every non-empty line
@@ -1252,10 +1354,41 @@ fi
 print_step "Joining the network"
 echo ""
 if [ -n "$EXISTING_BOOTSTRAP" ]; then
-    # Re-run over an existing install: keep the saved entry node (incl. "none").
-    BOOTSTRAP_PEERS_VALUE="$EXISTING_BOOTSTRAP"
-    ENTRY_NODE_SUMMARY="$EXISTING_BOOTSTRAP"
-    print_info "Keeping your saved entry node: $EXISTING_BOOTSTRAP"
+    # Re-run over an existing install with a saved entry node. A saved "none"
+    # (bootstrap disabled) is a valid value; anything else is re-checked.
+    # (No saved line at all means the built-in list: that path is below.)
+    SAVED_OK=true
+    if [ "$EXISTING_BOOTSTRAP" != "none" ]; then
+        if ! validate_node_addrs "$EXISTING_BOOTSTRAP"; then
+            SAVED_OK=false
+        fi
+    fi
+    if [ "$SAVED_OK" = true ]; then
+        print_info "Your saved entry node is: $EXISTING_BOOTSTRAP"
+        KEEP_PROMPT="Keep this entry node?"
+        KEEP_DEFAULT=yes
+    else
+        print_warning "Your saved entry node doesn't look like a valid node address: $EXISTING_BOOTSTRAP"
+        if [ -n "$NODE_ADDR_REASON" ]; then print_info "$NODE_ADDR_REASON"; fi
+        KEEP_PROMPT="Keep it anyway?"
+        KEEP_DEFAULT=no
+    fi
+    if gum_confirm "$KEEP_PROMPT" "$KEEP_DEFAULT"; then
+        BOOTSTRAP_PEERS_VALUE="$EXISTING_BOOTSTRAP"
+        ENTRY_NODE_SUMMARY="$EXISTING_BOOTSTRAP"
+        print_info "Keeping your saved entry node: $EXISTING_BOOTSTRAP"
+    else
+        echo "Paste a node address from another Station node's dashboard (Settings), or press Enter to continue without one."
+        echo ""
+        prompt_node_address
+        if [ -n "$BOOTSTRAP_PEERS_VALUE" ]; then
+            ENTRY_NODE_SUMMARY="$BOOTSTRAP_PEERS_VALUE"
+            print_success "Your node will join the network through: $BOOTSTRAP_PEERS_VALUE"
+        else
+            ENTRY_NODE_SUMMARY="none yet"
+            print_warning "Your node will start, but it won't be on the network until you add a node address. To add one later, run this installer again."
+        fi
+    fi
 elif fetch_builtin_bootnodes; then
     BOOTNODE_LIST_EMPTY=false
     [ -z "$BUILTIN_BOOTNODES" ] && BOOTNODE_LIST_EMPTY=true
@@ -1271,13 +1404,7 @@ elif fetch_builtin_bootnodes; then
         echo "Your node can join through any other Station node instead. Ask an artist who runs one to open their dashboard, go to Settings, and copy their Node address."
         echo "Paste it here, or press Enter to continue without one and add it later."
         echo ""
-        while true; do
-            node_addr_input=$(gum_input "Node address:" "/dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW...")
-            if BOOTSTRAP_PEERS_VALUE=$(normalize_node_addrs "$node_addr_input"); then
-                break
-            fi
-            print_error "That doesn't look like a node address. It should look like: /dns4/artist.example.com/tcp/443/wss/p2p/12D3KooW..."
-        done
+        prompt_node_address
         if [ -n "$BOOTSTRAP_PEERS_VALUE" ]; then
             ENTRY_NODE_SUMMARY="$BOOTSTRAP_PEERS_VALUE"
             print_success "Your node will join the network through: $BOOTSTRAP_PEERS_VALUE"
@@ -1401,7 +1528,7 @@ ACME_PRODUCTION=$ACME_PRODUCTION
 # NOTE: not read by the binary today (no consumer in cmd/station or pkg/) —
 # left in place as a documented, currently-inert knob rather than silently
 # dropped. The data directory is fixed to /data via docker-compose.yml's
-# station service `command:` (--data-dir flag), not an env var here.
+# station service command (--data-dir flag), not an env var here.
 STATION_LOG_LEVEL=info
 
 # Environment: production (mainnet directory) | testnet | local
