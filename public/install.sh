@@ -75,10 +75,11 @@ CHAIN=""
 # (KEY='value' lines). With it, every question below is answered from the
 # file instead of asked; without it, nothing changes.
 ANSWERS_FILE=""
-# --tui: run the station-installer terminal app for the questions (opt-in
-# while it is new). --tui-binary <path> uses a local build instead of the
-# release download (testing).
-USE_TUI=false
+# The questions are asked by the station-installer terminal app by default
+# (founder, 2026-10-25); --classic uses the wizard below instead. --tui is
+# kept so older commands still work. --tui-binary <path> uses a local build
+# instead of the release download (testing).
+USE_TUI=true
 TUI_BINARY=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -113,6 +114,10 @@ while [ $# -gt 0 ]; do
             USE_TUI=true
             shift
             ;;
+        --classic)
+            USE_TUI=false
+            shift
+            ;;
         --tui-binary)
             shift
             USE_TUI=true
@@ -120,7 +125,7 @@ while [ $# -gt 0 ]; do
             [ $# -eq 0 ] || shift
             ;;
         -h|--help)
-            echo "Usage: $(basename "$0") [--network production|testnet|local] [--chain polkadot-hub|kusama-hub|paseo|local|local-dummy] [--tui] [--answers <file>]"
+            echo "Usage: $(basename "$0") [--network production|testnet|local] [--chain polkadot-hub|kusama-hub|paseo|local|local-dummy] [--classic] [--answers <file>]"
             exit 0
             ;;
         *)
@@ -148,11 +153,12 @@ esac
 # Terminal app (--tui). The app asks the questions and runs this script again
 # with --answers, so everything after the questions is unchanged. Anything
 # that stops it (no download, a bad checksum, no terminal, not root) falls
-# back to the wizard below. STATION_RELEASE_TAG is filled in by release.yml
-# when it publishes this script, so the app always matches the script.
+# back to the wizard below. The app is published beside install.sh on
+# qnch.network by release.yml, which also fills in STATION_RELEASE_TAG; a copy
+# of this script that was not published (empty tag) does not download it.
 # ----------------------------------------------------------------------------
-STATION_RELEASE_TAG="v0.1.0-rc.16"
-STATION_RELEASES_URL="https://github.com/gotnoshoeson/station/releases/download"
+STATION_RELEASE_TAG="v0.1.0-rc.17"
+STATION_INSTALLER_URL="https://qnch.network/installer"
 
 fetch_tui() {
     local arch dir base want got
@@ -165,7 +171,7 @@ fetch_tui() {
     command -v curl >/dev/null && command -v sha256sum >/dev/null || return 1
     dir=$(mktemp -d) || return 1
     TUI_TMPDIR="$dir"
-    base="$STATION_RELEASES_URL/$STATION_RELEASE_TAG/station-installer-linux-$arch"
+    base="$STATION_INSTALLER_URL/station-installer-linux-$arch"
     curl -fsSL --max-time 120 -o "$dir/station-installer" "$base" || return 1
     curl -fsSL --max-time 30 -o "$dir/station-installer.sha256" "$base.sha256" || return 1
     want=$(awk '{print $1; exit}' "$dir/station-installer.sha256")
@@ -175,11 +181,10 @@ fetch_tui() {
     TUI_BINARY="$dir/station-installer"
 }
 
-if [ "$USE_TUI" = true ] && [ -z "$ANSWERS_FILE" ]; then
+# Not root: skip the app quietly; the wizard below says how to run as root.
+if [ "$USE_TUI" = true ] && [ -z "$ANSWERS_FILE" ] && [ "$EUID" -eq 0 ]; then
     tui_note=""
-    if [ "$EUID" -ne 0 ]; then
-        tui_note="the new installer needs root"
-    elif [ ! -t 0 ] || [ ! -t 1 ]; then
+    if [ ! -t 0 ] || [ ! -t 1 ]; then
         tui_note="the new installer needs an interactive terminal"
     elif [ -z "$TUI_BINARY" ] && ! fetch_tui; then
         tui_note="the new installer could not be downloaded or checked"
