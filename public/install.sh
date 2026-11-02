@@ -157,7 +157,7 @@ esac
 # qnch.network by release.yml, which also fills in STATION_RELEASE_TAG; a copy
 # of this script that was not published (empty tag) does not download it.
 # ----------------------------------------------------------------------------
-STATION_RELEASE_TAG="v0.1.0-rc.26"
+STATION_RELEASE_TAG="v0.1.0-rc.27"
 STATION_INSTALLER_URL="https://qnch.network/installer"
 
 fetch_tui() {
@@ -803,7 +803,7 @@ WATCHTOWER_EOF
     if [ "$ENABLE_ETHRPC" = true ]; then
         cat >> docker-compose.yml << 'ETHRPC_EOF'
 
-  # eth-rpc - the artist's own blockchain indexer.
+  # eth-rpc - ETH-RPC on the artist's own server (the indexer reads through it).
   #
   # This is Station's wrapper image: the pinned upstream eth-rpc binary plus a
   # small supervisor that owns the process. eth-rpc's --node-rpc-url is read
@@ -1346,39 +1346,17 @@ echo ""
 # ============================================================================
 ENABLE_ETHRPC=false
 if [ "$ETHRPC_ARCH_SUPPORTED" = true ]; then
-    print_step "Your own blockchain indexer"
-    echo ""
-    if [ "$GUM_AVAILABLE" = true ]; then
-        cat << 'ETHRPC_INFO' | gum format
-Station can run its own **blockchain indexer** alongside your node, so the
-record of your sales lives on your own server instead of depending entirely on
-someone else's.
-
-* Uses about 45MB of memory and well under 1% of a CPU core
-* Reads from free public providers — no account, no API key, nothing to pay for
-* If one provider goes down, your node moves to the next one on its own
-* Falls back to public indexers automatically if you skip this
-ETHRPC_INFO
-    else
-        echo "Station can run its own blockchain indexer, so the record of your"
-        echo "sales lives on your own server rather than someone else's."
-        echo ""
-        echo "  - About 45MB of memory, well under 1% of a CPU core"
-        echo "  - Reads from free public providers (no account or API key)"
-        echo "  - Moves to another provider on its own if one goes down"
-        echo "  - Falls back to public indexers automatically if you skip this"
-    fi
-    echo ""
-    if { [ "$ANSWERS_MODE" = true ] && answer_bool ENABLE_ETHRPC; } || \
-       { [ "$ANSWERS_MODE" != true ] && gum_confirm "Run your own blockchain indexer?" "yes"; }; then
+    # Not asked: ETH-RPC stays idle until the artist picks a chain that uses it.
+    # An answers file can still turn it off with ENABLE_ETHRPC='false'.
+    if [ "$ANSWERS_MODE" != true ] || answer_bool ENABLE_ETHRPC; then
         ENABLE_ETHRPC=true
-        print_success "Your node will run its own indexer"
+        print_success "ETH-RPC will be set up; Station uses it on chains that need it"
     else
-        print_info "Skipping. Your node will use public indexers."
+        print_info "Skipping ETH-RPC (turned off in the answers file). Your node will use public ETH-RPC services."
     fi
 else
-    print_info "Skipping the local blockchain indexer: it is only published for x86_64, and this machine is $HOST_ARCH."
-    print_info "Station itself runs fine here — your node will use public indexers instead."
+    print_info "Skipping ETH-RPC: it is only published for x86_64, and this machine is $HOST_ARCH."
+    print_info "Station itself runs fine here — your node will use public ETH-RPC services instead."
 fi
 echo ""
 
@@ -1810,8 +1788,8 @@ $CHAIN_LINE
 
 # Local eth-rpc sidecar control directory (inside the station container).
 # Set only when the wizard provisioned the sidecar. Empty or unset makes the
-# whole local-indexer subsystem inert, which is the correct state for a node
-# that uses public indexers.
+# whole local ETH-RPC subsystem inert, which is the correct state for a node
+# that uses public ETH-RPC services.
 STATION_ETHRPC_CONTROL_DIR=$ETHRPC_CONTROL_LINE
 
 # Watchtower HTTP API token. Station sends it as a bearer token to ask
