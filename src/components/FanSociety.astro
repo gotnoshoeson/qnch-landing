@@ -1,12 +1,14 @@
 ---
 import SectionLink from './SectionLink.astro';
+import Eyebrow from './Eyebrow.astro';
+import Handoff from './Handoff.astro';
 ---
 
 <section class="section" id="fansociety">
 	<div class="wrap">
 		<div class="head">
 			<div>
-				<p class="eyebrow">FanSociety</p>
+				<Eyebrow slug="fansociety">FanSociety</Eyebrow>
 				<h2>Crowdfunding patronage for musicians and fans</h2>
 			</div>
 
@@ -52,6 +54,8 @@ import SectionLink from './SectionLink.astro';
 		</p>
 
 		<SectionLink slug="fansociety" />
+
+		<Handoff to="dashboard">Releases, sales, backers. Where do you run all of it from?</Handoff>
 	</div>
 </section>
 

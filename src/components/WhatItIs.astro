@@ -1,5 +1,7 @@
 ---
 import SectionLink from './SectionLink.astro';
+import Eyebrow from './Eyebrow.astro';
+import Handoff from './Handoff.astro';
 
 const parts = [
 	{
@@ -24,7 +26,7 @@ const parts = [
 	<div class="wrap">
 		<div class="head inset">
 			<div class="head-text">
-				<p class="eyebrow">Get ready for something <strong>different</strong></p>
+				<Eyebrow slug="services">Get ready for something <strong>different</strong></Eyebrow>
 				<h2>Three services, no platforms</h2>
 			</div>
 			<p class="margin-note">The Sweet Spot for DIYing without being isolated</p>
@@ -46,6 +48,7 @@ const parts = [
 
 		<div class="tail inset">
 			<SectionLink slug="services" label="more about the three services" />
+			<Handoff to="setup">It starts with your music, on a server you control.</Handoff>
 		</div>
 	</div>
 </section>

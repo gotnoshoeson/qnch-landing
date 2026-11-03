@@ -1,4 +1,7 @@
 ---
+import Eyebrow from './Eyebrow.astro';
+import Handoff from './Handoff.astro';
+
 const steps = [
 	{
 		n: '01',
@@ -25,7 +28,7 @@ const steps = [
 	<div class="wrap">
 		<div class="layout">
 			<div class="rail">
-				<p class="eyebrow">Setup</p>
+				<Eyebrow slug="setup">Setup</Eyebrow>
 				<h2>DIY toolkit for DIY musicians</h2>
 			</div>
 
@@ -46,6 +49,8 @@ const steps = [
 				}
 			</ol>
 		</div>
+
+		<Handoff to="discovery">It's published. So how does anyone find it?</Handoff>
 	</div>
 </section>
 

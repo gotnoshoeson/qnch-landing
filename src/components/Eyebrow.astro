@@ -1,0 +1,25 @@
+---
+import { bySlug } from '../data/sections';
+
+/**
+ * A landing section's eyebrow, prefixed with its number from sections.ts so
+ * the landing page and the section pages count the same way.
+ */
+interface Props {
+	slug: string;
+}
+
+const meta = bySlug(Astro.props.slug);
+---
+
+<p class="eyebrow">
+	{meta && <span class="n">{meta.n}</span>}
+	<slot />
+</p>
+
+<style>
+	.n {
+		opacity: 0.55;
+		margin-right: 0.9em;
+	}
+</style>

@@ -1,6 +1,8 @@
 ---
 import { Image } from 'astro:assets';
 import SectionLink from './SectionLink.astro';
+import Eyebrow from './Eyebrow.astro';
+import Handoff from './Handoff.astro';
 import listenerApp from '../assets/listener-app.png';
 ---
 
@@ -8,7 +10,7 @@ import listenerApp from '../assets/listener-app.png';
 	<div class="wrap">
 		<div class="layout">
 			<div class="lead">
-				<p class="eyebrow">Discovery</p>
+				<Eyebrow slug="discovery">Discovery</Eyebrow>
 				<h2>Bye-bye algorithms</h2>
 
 				<figure class="shot">
@@ -46,6 +48,8 @@ import listenerApp from '../assets/listener-app.png';
 				<SectionLink slug="discovery" />
 			</div>
 		</div>
+
+		<Handoff to="money">Someone found it and wants to buy it. Where does the money go?</Handoff>
 	</div>
 </section>
 

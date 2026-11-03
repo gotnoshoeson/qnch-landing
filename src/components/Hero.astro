@@ -2,7 +2,7 @@
 	<canvas
 		class="hero-static"
 		data-static-field
-		data-px="3"
+		data-px="2"
 		data-density="0.34"
 		data-fps="12"
 		data-mint="0"
@@ -14,11 +14,9 @@
 			<span class="kicker-text plate">launching 2026</span>
 		</p>
 
-		<h1 class="pair">
-			<span class="half">DIY streaming</span>
-			<span class="half">Patronage</span>
-			<span class="join">Together at last</span>
-		</h1>
+		<h1><span class="frame">Music infrastructure for musicians</span></h1>
+
+		<p class="subhead"><span class="plate">Minimal extraction. Guaranteed, not promised.</span></p>
 
 		<p class="lede hero-lede">
 			<span class="plate"
@@ -49,10 +47,12 @@
 		align-items: center;
 		padding: clamp(3.5rem, 9vw, 7rem) var(--gutter) clamp(5rem, 10vw, 8rem);
 		overflow: hidden;
+		background: #000;
 	}
 
-	/* Same pixel scale and density as the mid-page divider, so the two read
-	   as one motif rather than two effects. */
+	/* Finer and dimmer than the mid-page divider: here it sits behind the
+	   headline, so it is texture, not a feature. The .hero background is
+	   black, so opacity reads as dimming. */
 	.hero-static {
 		position: absolute;
 		inset: 0;
@@ -61,6 +61,7 @@
 		z-index: 0;
 		background: #000;
 		image-rendering: pixelated;
+		opacity: 0.55;
 	}
 
 	/* Dark backing that hugs the type instead of blanking the hero, so the
@@ -111,57 +112,35 @@
 		color: rgba(255, 255, 255, 0.92);
 	}
 
-	/* ---- the pair --------------------------------------------------- */
+	/* ---- the claim ------------------------------------------------- */
 
-	/* Two halves that the industry ships separately, set at equal weight and
-	   held inside one frame. The frame is the claim. */
+	/* One statement, framed. The frame is a solid block rather than a .plate
+	   because display type runs at line-height 0.9, and per-line plates
+	   would overlap and band. */
 	h1 {
-		position: relative;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
 		max-width: 58rem;
-		margin: 0 auto clamp(2rem, 4vw, 2.75rem);
-		border: 1px solid var(--rule-strong);
-		background: rgba(0, 0, 0, 0.72);
+		margin: 0 auto clamp(1.25rem, 2.5vw, 1.75rem);
 		font-family: var(--display);
 		font-weight: 400;
 		text-transform: uppercase;
 		letter-spacing: -0.035em;
 		line-height: 0.9;
-		font-size: clamp(1.5rem, 5.2vw, 3.5rem);
+		font-size: clamp(2.5rem, 8vw, 6.25rem);
 	}
 
-	.half {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: clamp(2.5rem, 6vw, 4.25rem) clamp(1rem, 3vw, 2rem);
-		min-height: clamp(8.5rem, 20vw, 13rem);
+	.frame {
+		display: inline-block;
+		border: 1px solid var(--rule-strong);
+		background: rgba(0, 0, 0, 0.72);
+		padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1.25rem, 4vw, 3rem);
 	}
 
-	/* The divide the frame is arguing against. */
-	.half:first-child {
-		border-right: 1px solid var(--rule-strong);
-	}
-
-	/* Sits on the seam and knocks a hole in it. The join interrupting the
-	   divide is the whole point, made as layout rather than stated. */
-	.join {
-		position: absolute;
-		left: 50%;
-		top: 80%;
-		transform: translate(-50%, -50%) rotate(-1.5deg);
-		background: var(--black);
-		border: 1px solid var(--mint-rule);
-		color: var(--mint);
-		font-family: var(--mono);
-		font-size: clamp(0.58rem, 1.5vw, 0.72rem);
-		font-weight: 700;
-		letter-spacing: 0.2em;
-		text-transform: uppercase;
-		line-height: 1;
-		padding: 0.55rem 0.85rem;
-		white-space: nowrap;
+	.subhead {
+		max-width: none;
+		margin: 0 auto clamp(2rem, 4vw, 2.75rem);
+		font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+		line-height: 1.6;
+		color: #fff;
 	}
 
 	/* ---- everything under it ---------------------------------------- */
@@ -198,26 +177,7 @@
 		background: var(--rule-strong);
 	}
 
-	/* Stacked, the divide becomes horizontal — the join still lands on it. */
 	@media (max-width: 40rem) {
-		h1 {
-			grid-template-columns: 1fr;
-		}
-
-		.half {
-			min-height: 0;
-			padding: clamp(2rem, 9vw, 2.75rem) 1rem;
-		}
-
-		.half:first-child {
-			border-right: 0;
-			border-bottom: 1px solid var(--rule-strong);
-		}
-
-		.join {
-			top: 50%;
-		}
-
 		.scroll-hint {
 			display: none;
 		}

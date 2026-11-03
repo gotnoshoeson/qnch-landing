@@ -1,0 +1,56 @@
+---
+/**
+ * The question a section leaves open, pointing at the section that answers
+ * it. This is what carries the page from one part to the next, so each
+ * section reads as following from the last instead of standing alone.
+ */
+interface Props {
+	/** Anchor id of the section that answers the question. */
+	to: string;
+}
+
+const { to } = Astro.props;
+---
+
+<a class="handoff" href={`#${to}`}>
+	<span class="text"><slot /></span>
+	<span class="arrow" aria-hidden="true">↓</span>
+</a>
+
+<style>
+	.handoff {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1.5rem;
+		margin-top: clamp(3rem, 6vw, 4.5rem);
+		padding-top: 1rem;
+		border-top: 1px solid var(--rule);
+		text-decoration: none;
+		font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+		line-height: 1.5;
+		color: rgba(255, 255, 255, 0.78);
+		transition: color 0.15s ease;
+	}
+
+	.handoff:hover,
+	.handoff:focus-visible {
+		color: var(--mint);
+	}
+
+	.arrow {
+		font-family: var(--mono);
+		color: var(--mint);
+	}
+
+	:global(.invert) .handoff {
+		color: rgba(0, 0, 0, 0.72);
+		border-top-color: rgba(0, 0, 0, 0.16);
+	}
+
+	:global(.invert) .handoff:hover,
+	:global(.invert) .handoff:focus-visible,
+	:global(.invert) .arrow {
+		color: #1c7f3e;
+	}
+</style>

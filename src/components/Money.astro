@@ -1,12 +1,14 @@
 ---
 import SectionLink from './SectionLink.astro';
+import Eyebrow from './Eyebrow.astro';
+import Handoff from './Handoff.astro';
 ---
 
 <section class="section invert noise" id="money">
 	<div class="wrap">
 		<div class="head">
 			<div>
-				<p class="eyebrow">Revenue split</p>
+				<Eyebrow slug="revenue">Revenue split</Eyebrow>
 				<h2>Sovereign payments, minimally extractive</h2>
 			</div>
 			<span class="split" aria-label="zero percent to Station, one hundred percent to you">
@@ -35,6 +37,8 @@ import SectionLink from './SectionLink.astro';
 		</div>
 
 		<SectionLink slug="revenue" />
+
+		<Handoff to="fansociety">That covers a sale. What about fans who want to back you for years?</Handoff>
 	</div>
 </section>
 

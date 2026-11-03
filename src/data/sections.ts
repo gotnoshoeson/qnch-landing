@@ -3,6 +3,9 @@
  * once built out, gets its own page at /<slug>. The numbers are stable
  * across the whole site — /revenue is 04 wherever it shows up.
  *
+ * The order follows one release through: hosted, found, paid for, backed,
+ * then the dashboard where all of that is run from.
+ *
  * `ready: false` means the page doesn't exist yet: no "read more" link is
  * rendered on the landing section and the pager skips over it. Flip it to
  * true in the same commit that adds src/pages/<slug>.astro.
@@ -21,10 +24,10 @@ export interface SectionMeta {
 export const sections: SectionMeta[] = [
 	{ n: '01', slug: 'services', eyebrow: 'Three services', title: 'Three services, no platforms', ready: true },
 	{ n: '02', slug: 'setup', eyebrow: 'Setup', title: 'DIY toolkit for DIY musicians', ready: false },
-	{ n: '03', slug: 'dashboard', eyebrow: 'The dashboard', title: 'Artist controls', ready: true },
+	{ n: '03', slug: 'discovery', eyebrow: 'Discovery', title: 'Bye-bye algorithms', ready: true },
 	{ n: '04', slug: 'revenue', eyebrow: 'Revenue split', title: 'Sovereign payments, minimally extractive', ready: true },
 	{ n: '05', slug: 'fansociety', eyebrow: 'FanSociety', title: 'Patronage for musicians and fans', ready: true },
-	{ n: '06', slug: 'discovery', eyebrow: 'Discovery', title: 'Bye-bye algorithms', ready: true },
+	{ n: '06', slug: 'dashboard', eyebrow: 'The dashboard', title: 'Artist controls', ready: true },
 	{ n: '07', slug: 'ai', eyebrow: 'Artificial intelligence', title: 'The elephant in the room', ready: true },
 ];
 
