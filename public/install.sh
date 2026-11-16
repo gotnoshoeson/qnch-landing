@@ -149,6 +149,17 @@ case "$CHAIN" in
         ;;
 esac
 
+# Station's images and the installer app are published for x86_64 only. Stop
+# here, before any download or question, rather than fail at `docker compose up`.
+case "$(uname -m)" in
+    x86_64|amd64) ;;
+    *)
+        echo "Station runs on x86_64 servers only. This server is $(uname -m)." >&2
+        echo "Choose an x86_64 (Intel or AMD) plan from your provider and run the installer there." >&2
+        exit 1
+        ;;
+esac
+
 # ----------------------------------------------------------------------------
 # Terminal app (--tui). The app asks the questions and runs this script again
 # with --answers, so everything after the questions is unchanged. Anything
@@ -157,14 +168,13 @@ esac
 # qnch.network by release.yml, which also fills in STATION_RELEASE_TAG; a copy
 # of this script that was not published (empty tag) does not download it.
 # ----------------------------------------------------------------------------
-STATION_RELEASE_TAG="v0.1.0-rc.30"
+STATION_RELEASE_TAG="v0.1.0-rc.31"
 STATION_INSTALLER_URL="https://qnch.network/installer"
 
 fetch_tui() {
     local arch dir base want got
     case "$(uname -m)" in
         x86_64|amd64) arch=amd64 ;;
-        aarch64|arm64) arch=arm64 ;;
         *) return 1 ;;
     esac
     [ -n "$STATION_RELEASE_TAG" ] || return 1
@@ -930,25 +940,6 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# ============================================================================
-# Architecture gate (local eth-rpc)
-# ============================================================================
-# Runs before any prompt, including the reconfigure check below, so an arm64
-# host is told why up front instead of hitting a confusing platform-mismatch
-# error deep inside `docker compose up` after the whole wizard has run.
-#
-# This does NOT abort the install: Station itself is architecture-independent.
-# It only decides whether the local eth-rpc option is offered at all, because
-# the upstream parity/eth-rpc image is amd64-only across every published tag.
-ETHRPC_ARCH_SUPPORTED=true
-HOST_ARCH="$(uname -m)"
-case "$HOST_ARCH" in
-    x86_64|amd64) ;;
-    *)
-        ETHRPC_ARCH_SUPPORTED=false
-        ;;
-esac
-
 # Check if already configured
 if [ -f "$PROJECT_ROOT/.env" ]; then
     print_warning "Found existing .env file"
@@ -1345,18 +1336,13 @@ echo ""
 # Step 5b: Local eth-rpc adapter
 # ============================================================================
 ENABLE_ETHRPC=false
-if [ "$ETHRPC_ARCH_SUPPORTED" = true ]; then
-    # Not asked: ETH-RPC stays idle until the artist picks a chain that uses it.
-    # An answers file can still turn it off with ENABLE_ETHRPC='false'.
-    if [ "$ANSWERS_MODE" != true ] || answer_bool ENABLE_ETHRPC; then
-        ENABLE_ETHRPC=true
-        print_success "ETH-RPC will be set up; Station uses it on chains that need it"
-    else
-        print_info "Skipping ETH-RPC (turned off in the answers file). Your node will use public ETH-RPC services."
-    fi
+# Not asked: ETH-RPC stays idle until the artist picks a chain that uses it.
+# An answers file can still turn it off with ENABLE_ETHRPC='false'.
+if [ "$ANSWERS_MODE" != true ] || answer_bool ENABLE_ETHRPC; then
+    ENABLE_ETHRPC=true
+    print_success "ETH-RPC will be set up; Station uses it on chains that need it"
 else
-    print_info "Skipping ETH-RPC: it is only published for x86_64, and this machine is $HOST_ARCH."
-    print_info "Station itself runs fine here — your node will use public ETH-RPC services instead."
+    print_info "Skipping ETH-RPC (turned off in the answers file). Your node will use public ETH-RPC services."
 fi
 echo ""
 
